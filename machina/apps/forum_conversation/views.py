@@ -390,6 +390,10 @@ class BaseTopicFormView(BasePostFormView):
     poll_option_formset_general_error_message = _('There are some errors in the poll options you submitted.')
 
     def get(self, request, *args, **kwargs):
+        if request.user.is_banned_site:
+            messages.add_message(request, messages.INFO, 'Your comment permissions have been revoked because you have been banned. :)')
+            return HttpResponseRedirect(reverse('index')) # Redirect after POST
+
         self.init_attachment_cache()
 
         # Initializes the forms
@@ -407,6 +411,10 @@ class BaseTopicFormView(BasePostFormView):
                 poll_option_formset=poll_option_formset))
 
     def post(self, request, *args, **kwargs):
+        if request.user.is_banned_site:
+            messages.add_message(request, messages.INFO, 'Your comment permissions have been revoked because you have been banned. :)')
+            return HttpResponseRedirect(reverse('index')) # Redirect after POST
+
         self.init_attachment_cache()
 
         # Stores a boolean indicating if we are considering a preview
