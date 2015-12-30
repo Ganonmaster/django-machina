@@ -127,6 +127,10 @@ class BasePostFormView(FormView):
     attachment_formset_general_error_message = _('There are some errors in the attachments you submitted.')
 
     def get(self, request, *args, **kwargs):
+        if request.user.is_banned_site:
+            messages.add_message(request, messages.INFO, 'Your comment permissions have been revoked because you have been banned. :)')
+            return HttpResponseRedirect(reverse('index')) # Redirect after POST
+
         self.init_attachment_cache()
 
         # Initializes the forms
@@ -141,6 +145,10 @@ class BasePostFormView(FormView):
                 attachment_formset=attachment_formset))
 
     def post(self, request, *args, **kwargs):
+        if request.user.is_banned_site:
+            messages.add_message(request, messages.INFO, 'Your comment permissions have been revoked because you have been banned. :)')
+            return HttpResponseRedirect(reverse('index')) # Redirect after POST
+
         self.init_attachment_cache()
 
         # Stores a boolean indicating if we are considering a preview
