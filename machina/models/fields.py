@@ -175,7 +175,11 @@ class MarkupTextField(models.TextField):
 
         rendered = None
         if hasattr(value, 'raw'):
-            rendered = render_func(value.raw)
+            from workshop.markdown import EmojiRenderer
+            import mistune
+    		renderer = EmojiRenderer()
+    		markdown = mistune.Markdown(renderer, escape=True, hard_wrap=True)
+    		rendered = markdown(value.raw)
 
         setattr(instance, _rendered_field_name(self.attname), rendered)
 
