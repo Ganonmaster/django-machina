@@ -44,6 +44,9 @@ extensions = [
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+html_additional_pages = {
+    'index': 'indexcontent.html',
+}
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -56,14 +59,12 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'django-machina'
-copyright = u'2015, Morgan Aubert'
+copyright = u'2013-2016, Morgan Aubert'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-
-import machina
 
 # The short X.Y version.
 version = machina.__version__
@@ -165,10 +166,6 @@ html_static_path = ['_static']
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
 
-# Additional templates that should be rendered to pages, maps page names to
-# template names.
-#html_additional_pages = {}
-
 # If false, no module index is generated.
 #html_domain_indices = True
 
@@ -197,6 +194,9 @@ html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'django-machinadoc'
+
+def setup(app):
+    app.add_stylesheet('custom_theme.css')
 
 
 # -- Options for LaTeX output ---------------------------------------------

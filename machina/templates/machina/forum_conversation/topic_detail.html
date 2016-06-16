@@ -3,7 +3,7 @@
 {% load forum_conversation_tags %}
 {% load forum_permission_tags %}
 
-{% block sub-title %}{{ topic.subject }}{% endblock sub-title %}
+{% block sub_title %}{{ topic.subject }}{% endblock sub_title %}
 
 {% block content %}
     <div class="row">
@@ -12,12 +12,12 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-xs-6 col-md-4 topic-actions-block">
-            {% include "machina/forum_conversation/partials/topic_detail_moderation_actions.html" %}
+        <div class="col-xs-12 col-md-4 topic-actions-block">
+            {% include "forum_conversation/partials/topic_detail_actions.html" %}
         </div>
         <div class="col-xs-12 col-md-8 pagination-block">
             {% with "pagination-sm" as pagination_size %}
-                {% include "machina/partials/pagination.html" %}
+                {% include "partials/pagination.html" %}
             {% endwith %}
         </div>
     </div>
@@ -25,7 +25,7 @@
         <div class="col-xs-12">
             {% for post in posts %}
                 {% if forloop.first and post.is_topic_head and poll %}
-                    {% include "machina/forum_conversation/forum_polls/poll_detail.html" %}
+                    {% include "forum_conversation/forum_polls/poll_detail.html" %}
                 {% endif %}
                 <div id="{{ post.id }}" class="panel panel-default post">
                     <div class="panel-body">
@@ -41,16 +41,33 @@
                                         <a href="{% url 'forum_conversation:post_delete' forum.slug forum.pk topic.slug topic.pk post.pk %}" class="btn btn-danger btn-xs" title="{% trans "Delete" %}"><i class="fa fa-times"></i></a>
                                     {% endif %}
                                 </div>
-                                <h4 class="subject">{{ post.subject }}</h4>
+                                {% spaceless %}
+                                <h4 class="subject">
+                                  {{ post.subject }}
+                                  &nbsp;<a href="{% url 'forum_conversation:topic' forum.slug forum.pk topic.slug topic.pk %}?post={{ post.pk }}#{{ post.pk }}">&#182;</a>
+                                </h4>
+                                {% endspaceless %}
                                 <p>
                                     <small class="text-muted">
-                                        <i class="fa fa-clock-o"></i>&nbsp;{% trans "By:" %}&nbsp;{% if post.poster %}<a href="{% url 'forum_member:profile' post.poster_id %}">{{ post.poster.username }}</a>{% else %}{{ post.username }}{% endif %}&nbsp;{% trans "on" %}&nbsp;{{ post.created }}
+                                    {% spaceless %}
+                                      <i class="fa fa-clock-o"></i>&nbsp;
+                                      {% if post.poster %}
+                                        {% url 'forum_member:profile' post.poster_id as poster_url %}
+                                        {% blocktrans trimmed with poster_url=poster_url username=post.poster.username creation_date=post.created %}
+                                          By: <a href="{{ poster_url }}">{{ username }}</a> on {{ creation_date }}
+                                        {% endblocktrans %}
+                                      {% else %}
+                                        {% blocktrans trimmed with poster_username=post.username creation_date=post.created %}
+                                          By: {{ poster_username }} on {{ creation_date }}
+                                        {% endblocktrans %}
+                                      {% endif %}
+                                    {% endspaceless %}
                                     </small>
                                 </p>
                                 <div class="post-content">
                                     {{ post.content.rendered }}
                                 </div>
-                                {% include "machina/forum_conversation/forum_attachments/attachments_detail.html" %}
+                                {% include "forum_conversation/forum_attachments/attachments_detail.html" %}
                                 {% if post.poster.forum_profile.signature %}
                                     <div class="post-signature">
                                         {{ post.poster.forum_profile.signature.rendered }}
@@ -95,11 +112,11 @@
     </div>
     <div class="row">
         <div class="col-xs-6 col-md-4 topic-actions-block">
-            {% include "machina/forum_conversation/partials/topic_detail_moderation_actions.html" %}
+            {% include "forum_conversation/partials/topic_detail_actions.html" %}
         </div>
         <div class="col-xs-12 col-md-8 pagination-block">
             {% with "pagination-sm" as pagination_size %}
-                {% include "machina/partials/pagination.html" %}
+                {% include "partials/pagination.html" %}
             {% endwith %}
         </div>
     </div>

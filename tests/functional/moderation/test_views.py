@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from faker import Factory as FakerFactory
 import pytest
 
-# Local application / specific library imports
 from machina.core.loading import get_class
 from machina.core.db.models import get_model
-from machina.core.shortcuts import refresh
 from machina.test.factories import create_forum
 from machina.test.factories import create_topic
 from machina.test.factories import ForumReadTrackFactory
@@ -75,8 +71,8 @@ class TestTopicLockView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.is_locked
+        self.topic.refresh_from_db()
+        assert self.topic.is_locked
 
     def test_redirects_to_the_topic_view(self):
         # Setup
@@ -118,7 +114,7 @@ class TestTopicUnlockView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user)
 
@@ -150,8 +146,8 @@ class TestTopicUnlockView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert not topic.is_locked
+        self.topic.refresh_from_db()
+        assert not self.topic.is_locked
 
     def test_redirects_to_the_topic_view(self):
         # Setup
@@ -300,8 +296,8 @@ class TestTopicMoveView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, post_data, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.forum == self.other_forum
+        self.topic.refresh_from_db()
+        assert self.topic.forum == self.other_forum
 
     def test_can_move_and_lock_topics(self):
         # Setup
@@ -315,13 +311,13 @@ class TestTopicMoveView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, post_data, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.forum == self.other_forum
-        assert topic.is_locked
+        self.topic.refresh_from_db()
+        assert self.topic.forum == self.other_forum
+        assert self.topic.is_locked
 
     def test_can_move_and_unlock_a_topic_if_it_was_locked(self):
         # Setup
-        self.topic.status = self.topic.STATUS_CHOICES.topic_locked
+        self.topic.status = self.topic.TOPIC_LOCKED
         self.topic.save()
         correct_url = reverse(
             'forum_moderation:topic_move',
@@ -333,9 +329,9 @@ class TestTopicMoveView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, post_data, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.forum == self.other_forum
-        assert not topic.is_locked
+        self.topic.refresh_from_db()
+        assert self.topic.forum == self.other_forum
+        assert not self.topic.is_locked
 
     def test_cannot_be_browsed_by_users_who_cannot_move_topics(self):
         # Setup
@@ -361,8 +357,8 @@ class TestTopicUpdateToNormalTopicView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            type=Topic.TYPE_CHOICES.topic_post,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            type=Topic.TOPIC_POST,
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user)
 
@@ -394,8 +390,8 @@ class TestTopicUpdateToNormalTopicView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.is_topic
+        self.topic.refresh_from_db()
+        assert self.topic.is_topic
 
     def test_redirects_to_the_topic_view(self):
         # Setup
@@ -437,7 +433,7 @@ class TestTopicUpdateToStickyTopicView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user)
 
@@ -470,8 +466,8 @@ class TestTopicUpdateToStickyTopicView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.is_sticky
+        self.topic.refresh_from_db()
+        assert self.topic.is_sticky
 
     def test_redirects_to_the_topic_view(self):
         # Setup
@@ -513,7 +509,7 @@ class TestTopicUpdateToAnnounceView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user)
 
@@ -546,8 +542,8 @@ class TestTopicUpdateToAnnounceView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        topic = refresh(self.topic)
-        assert topic.is_announce
+        self.topic.refresh_from_db()
+        assert self.topic.is_announce
 
     def test_redirects_to_the_topic_view(self):
         # Setup
@@ -589,7 +585,7 @@ class TestModerationQueueListView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user)
 
@@ -630,7 +626,7 @@ class TestModerationQueueListView(BaseClientTestCase):
         assert response.status_code == 200
         assert set(response.context_data['posts']) == set([post2, ])
 
-    def test_display_only_posts_whose_forums_are_eligible_to_the_moderation_queue_for_the_given_user(self):
+    def test_display_only_posts_whose_forums_are_eligible_to_the_moderation_queue_for_the_given_user(self):  # noqa
         # Setup
         post2 = PostFactory.create(topic=self.topic, poster=self.user, approved=False)
         f1 = create_forum()
@@ -658,7 +654,7 @@ class TestModerationQueueDetailView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user, approved=False)
 
@@ -714,7 +710,7 @@ class TestPostApproveView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user, approved=False)
 
@@ -742,8 +738,8 @@ class TestPostApproveView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, follow=True)
         # Check
-        post = refresh(self.post)
-        assert post.approved
+        self.post.refresh_from_db()
+        assert self.post.approved
 
     def test_redirects_to_the_moderation_queue(self):
         # Setup
@@ -782,7 +778,7 @@ class TestPostDisapproveView(BaseClientTestCase):
         # Set up a topic and some posts
         self.topic = create_topic(
             forum=self.top_level_forum, poster=self.user,
-            status=Topic.STATUS_CHOICES.topic_locked)
+            status=Topic.TOPIC_LOCKED)
         self.first_post = PostFactory.create(topic=self.topic, poster=self.user)
         self.post = PostFactory.create(topic=self.topic, poster=self.user, approved=False)
 

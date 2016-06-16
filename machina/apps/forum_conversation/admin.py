@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
+from __future__ import unicode_literals
+
 from django.contrib import admin
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.models.fields import MarkupTextField
 from machina.models.fields import MarkupTextFieldWidget
@@ -16,11 +15,6 @@ Topic = get_model('forum_conversation', 'Topic')
 
 class AttachmentInline(admin.TabularInline):
     model = Attachment
-    extra = 1
-
-
-class PostInline(admin.TabularInline):
-    model = Post
     extra = 1
 
 
@@ -38,8 +32,8 @@ class PostAdmin(admin.ModelAdmin):
 
 
 class TopicAdmin(admin.ModelAdmin):
-    inlines = (PostInline,)
-    list_display = ('subject', 'forum', 'created', 'first_post', 'last_post', 'posts_count', 'approved')
+    list_display = (
+        'subject', 'forum', 'created', 'first_post', 'last_post', 'posts_count', 'approved')
     list_filter = ('created', 'updated',)
     raw_id_fields = ('poster', 'subscribers', )
     search_fields = ('subject',)

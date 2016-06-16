@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
+import shutil
 
-# Third party imports
+from django.conf import settings
 from faker import Factory as FakerFactory
 from haystack.management.commands import clear_index
 from haystack.management.commands import rebuild_index
 from haystack.query import SearchQuerySet
 import pytest
 
-# Local application / specific library imports
 from machina.apps.forum_search.forms import SearchForm
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
@@ -37,7 +36,7 @@ class TestSearchForm(object):
         self.perm_handler = PermissionHandler()
 
         # Create a basic user
-        self.user = UserFactory.create()
+        self.user = UserFactory.create(username='foobar')
 
         # Set up the following forum tree:
         #
@@ -102,6 +101,10 @@ class TestSearchForm(object):
 
         clear_index.Command().handle(interactive=False, verbosity=-1)
 
+    @classmethod
+    def teardown_class(cls):
+        shutil.rmtree(settings.HAYSTACK_CONNECTIONS['default']['PATH'])
+
     def test_can_search_forum_posts(self):
         # Setup
         form = SearchForm(
@@ -157,16 +160,18 @@ class TestSearchForm(object):
         assert form.is_valid()
         assert results[0].forum == self.topic_1.forum.pk
 
-    def test_can_search_forum_posts_by_using_the_poster_name(self):
+    def test_can_search_forum_posts_by_using_the_registered_poster_name(self):
         # Setup
-        self.topic_2.first_post.subject = self.topic_1.subject
+        self.topic_1.first_post.subject = 'newsubject'
+        self.topic_1.first_post.save()
+        self.topic_2.first_post.subject = 'newsubject'
         self.topic_2.first_post.save()
-        self.topic_3.first_post.subject = self.topic_1.subject
+        self.topic_3.first_post.subject = 'newsubject'
         self.topic_3.first_post.save()
         rebuild_index.Command().handle(interactive=False, verbosity=-1)
         form = SearchForm(
             {
-                'q': self.topic_1.subject,
+                'q': 'newsubject',
                 'search_poster_name': self.user.username,
 
             },
@@ -177,6 +182,31 @@ class TestSearchForm(object):
         # Check
         assert form.is_valid()
         assert [r.object for r in results] == [self.post_1, self.post_2, self.post_3, ]
+
+    def test_can_search_forum_posts_by_using_the_anonymous_poster_name(self):
+        # Setup
+        self.topic_1.first_post.subject = 'newsubject'
+        self.topic_1.first_post.save()
+        self.topic_2.first_post.subject = 'newsubject'
+        self.topic_2.first_post.save()
+        self.topic_3.first_post.subject = 'newsubject'
+        self.topic_3.first_post.save()
+        post_4 = PostFactory.create(
+            subject='newsubject', topic=self.topic_3, poster=None, username='newtest')
+        rebuild_index.Command().handle(interactive=False, verbosity=-1)
+        form = SearchForm(
+            {
+                'q': 'newsubject',
+                'search_poster_name': 'newtest',
+
+            },
+            user=self.user,
+        )
+        # Run
+        results = form.search()
+        # Check
+        assert form.is_valid()
+        assert [r.object for r in results] == [post_4, ]
 
     def test_can_search_forum_posts_by_using_a_set_of_forums(self):
         # Setup

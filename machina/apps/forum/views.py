@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
+from __future__ import unicode_literals
+
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView
 
-# Local application / specific library imports
 from machina.apps.forum.signals import forum_viewed
 from machina.conf import settings as machina_settings
 from machina.core.db.models import get_model
@@ -71,7 +70,7 @@ class ForumView(PermissionRequiredMixin, ListView):
 
     def get_queryset(self):
         self.forum = self.get_forum()
-        qs = self.forum.topics.exclude(type=Topic.TYPE_CHOICES.topic_announce).exclude(approved=False) \
+        qs = self.forum.topics.exclude(type=Topic.TOPIC_ANNOUNCE).exclude(approved=False) \
             .select_related('poster')
         return qs
 
@@ -90,7 +89,7 @@ class ForumView(PermissionRequiredMixin, ListView):
             .forum_list_filter(sub_forums, self.request.user)
 
         # The announces will be displayed on each page of the forum
-        context['announces'] = self.get_forum().topics.filter(type=Topic.TYPE_CHOICES.topic_announce)
+        context['announces'] = self.get_forum().topics.filter(type=Topic.TOPIC_ANNOUNCE)
 
         return context
 

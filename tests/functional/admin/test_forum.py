@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 import pytest
 
-# Local application / specific library imports
 from machina.apps.forum.admin import PickUserForm
-from machina.apps.forum.abstract_models import FORUM_TYPES
 from machina.apps.forum_permission.models import ForumPermission
 from machina.apps.forum_permission.models import GroupForumPermission
 from machina.apps.forum_permission.models import UserForumPermission
@@ -31,21 +27,25 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     @pytest.fixture(autouse=True)
     def setup(self):
         # Set up a top-level category
-        top_level_cat = Forum.objects.create(name='top_level_cat', type=FORUM_TYPES.forum_cat)
+        top_level_cat = Forum.objects.create(name='top_level_cat', type=Forum.FORUM_CAT)
         self.top_level_cat = top_level_cat
 
         # Set up some sub forums
-        self.sub_forum_1 = Forum.objects.create(name='top_level_forum_1', type=FORUM_TYPES.forum_post, parent=top_level_cat)
-        self.sub_forum_2 = Forum.objects.create(name='top_level_forum_2', type=FORUM_TYPES.forum_post, parent=top_level_cat)
-        self.sub_forum_3 = Forum.objects.create(name='top_level_forum_3', type=FORUM_TYPES.forum_post, parent=top_level_cat)
+        self.sub_forum_1 = Forum.objects.create(
+            name='top_level_forum_1', type=Forum.FORUM_POST, parent=top_level_cat)
+        self.sub_forum_2 = Forum.objects.create(
+            name='top_level_forum_2', type=Forum.FORUM_POST, parent=top_level_cat)
+        self.sub_forum_3 = Forum.objects.create(
+            name='top_level_forum_3', type=Forum.FORUM_POST, parent=top_level_cat)
 
         # Set up a top-level forum
-        self.top_level_forum = Forum.objects.create(name='top_level_forum', type=FORUM_TYPES.forum_post)
+        self.top_level_forum = Forum.objects.create(name='top_level_forum', type=Forum.FORUM_POST)
 
     def test_can_move_a_forum_upward(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_move'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_move'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_forum.id, 'direction': 'up'})
         response = self.client.get(url)
@@ -58,7 +58,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_can_move_a_forum_downward(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_move'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_move'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.sub_forum_2.id, 'direction': 'down'})
         response = self.client.get(url)
@@ -71,7 +72,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_can_not_move_a_forum_with_no_siblings(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_move'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_move'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id, 'direction': 'up'})
         response = self.client.get(url)
@@ -84,7 +86,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_editpermission_index_view_browsing_works(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.get(url)
@@ -94,7 +97,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_editpermission_index_view_submission_cannot_work_without_data(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.post(url)
@@ -105,7 +109,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_editpermission_index_view_can_redirect_to_user_permissions_form(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.post(url, {'user': self.user.id}, follow=True)
@@ -121,15 +126,16 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_editpermission_index_view_can_redirect_to_anonymous_user_permissions_form(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.post(url, {'anonymous_user': 1}, follow=True)
         # Check
         editpermissions_anonymous_user_raw_url = 'admin:{}_{}_editpermission_anonymous_user'.format(
             model._meta.app_label, self._get_module_name(model._meta))
-        editpermissions_anonymous_user_url = reverse(editpermissions_anonymous_user_raw_url, kwargs={
-            'forum_id': self.top_level_cat.id})
+        editpermissions_anonymous_user_url = reverse(
+            editpermissions_anonymous_user_raw_url, kwargs={'forum_id': self.top_level_cat.id})
         assert len(response.redirect_chain)
         last_url, status_code = response.redirect_chain[-1]
         assert editpermissions_anonymous_user_url in last_url
@@ -138,7 +144,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
         # Setup
         group = GroupFactory.create()
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.post(url, {'group': group.id}, follow=True)
@@ -146,7 +153,7 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
         editpermissions_group_raw_url = 'admin:{}_{}_editpermission_group'.format(
             model._meta.app_label, self._get_module_name(model._meta))
         editpermissions_group_url = reverse(editpermissions_group_raw_url, kwargs={
-            'forum_id': self.top_level_cat.id, 'group_id': self.user.id})
+            'forum_id': self.top_level_cat.id, 'group_id': group.id})
         assert len(response.redirect_chain)
         last_url, status_code = response.redirect_chain[-1]
         assert editpermissions_group_url in last_url
@@ -173,7 +180,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
             forum=self.sub_forum_1,
             group=group, has_perm=False)
 
-        raw_url = 'admin:{}_{}_editpermission_index'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_index'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         # Run
         url = reverse(raw_url, kwargs={'forum_id': self.top_level_cat.id})
         response = self.client.post(url, {'forum': self.sub_forum_1.id})
@@ -207,7 +215,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
             forum=self.top_level_cat,
             user=self.user, has_perm=False)
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_user'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_user'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         post_data = {
             'can_see_forum': 'granted',
             'can_read_forum': 'not-granted',
@@ -225,7 +234,6 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
             'can_lock_topics': 'not-set',
             'can_edit_posts': 'not-set',
             'can_delete_posts': 'not-set',
-            'can_move_posts': 'not-set',
             'can_approve_posts': 'not-set',
         }
         # Run
@@ -246,7 +254,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
     def test_editpermission_form_can_update_anonymous_user_permissions(self):
         # Setup
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_anonymous_user'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_anonymous_user'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         post_data = {
             'can_see_forum': 'granted',
             'can_read_forum': 'not-granted',
@@ -264,7 +273,6 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
             'can_lock_topics': 'not-set',
             'can_edit_posts': 'not-set',
             'can_delete_posts': 'not-set',
-            'can_move_posts': 'not-set',
             'can_approve_posts': 'not-set',
         }
         # Run
@@ -286,7 +294,8 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
         # Setup
         group = GroupFactory.create()
         model = self.model
-        raw_url = 'admin:{}_{}_editpermission_group'.format(model._meta.app_label, self._get_module_name(model._meta))
+        raw_url = 'admin:{}_{}_editpermission_group'.format(
+            model._meta.app_label, self._get_module_name(model._meta))
         post_data = {
             'can_see_forum': 'granted',
             'can_read_forum': 'not-granted',
@@ -304,7 +313,6 @@ class TestForumAdmin(AdminClientTestCase, AdminBaseViewTestMixin):
             'can_lock_topics': 'not-set',
             'can_edit_posts': 'not-set',
             'can_delete_posts': 'not-set',
-            'can_move_posts': 'not-set',
             'can_approve_posts': 'not-set',
         }
         # Run

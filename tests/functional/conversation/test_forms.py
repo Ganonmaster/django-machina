@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django import forms
 from django.contrib.auth.models import AnonymousUser
 from faker import Factory as FakerFactory
 import pytest
 
-# Local application / specific library imports
 from machina.apps.forum_conversation.forms import PostForm
 from machina.apps.forum_conversation.forms import TopicForm
 from machina.conf import settings as machina_settings
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
-from machina.core.shortcuts import refresh
 from machina.test.factories import create_forum
 from machina.test.factories import create_topic
 from machina.test.factories import PostFactory
@@ -107,7 +103,7 @@ class TestPostForm(object):
         # Check
         assert form.is_valid()
         form.save()
-        self.post = refresh(self.post)
+        self.post.refresh_from_db()
         assert self.post.updates_count == initial_updates_count + 1
 
     def test_set_the_topic_as_unapproved_if_the_user_has_not_the_required_permission(self):
@@ -205,7 +201,7 @@ class TestTopicForm(object):
         form_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
         }
         # Run
         form = TopicForm(
@@ -222,7 +218,7 @@ class TestTopicForm(object):
         form_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         assign_perm('can_post_stickies', self.user, self.top_level_forum)
         # Run
@@ -240,7 +236,7 @@ class TestTopicForm(object):
         form_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_announce,
+            'topic_type': Topic.TOPIC_ANNOUNCE,
         }
         assign_perm('can_post_announcements', self.user, self.top_level_forum)
         # Run
@@ -269,14 +265,14 @@ class TestTopicForm(object):
         # Check
         assert valid
         post = form.save()
-        assert post.topic.type == Topic.TYPE_CHOICES.topic_post
+        assert post.topic.type == Topic.TOPIC_POST
 
     def test_allows_the_creation_of_stickies_if_the_user_has_required_permission(self):
         # Setup
         form_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         form_kwargs = {
             'data': form_data,
@@ -288,19 +284,19 @@ class TestTopicForm(object):
         form = TopicForm(**form_kwargs)
         assert not form.is_valid()
         choices = [ch[0] for ch in form.fields['topic_type'].choices]
-        assert Topic.TYPE_CHOICES.topic_sticky not in choices
+        assert Topic.TOPIC_STICKY not in choices
         assign_perm('can_post_stickies', self.user, self.top_level_forum)
         form = TopicForm(**form_kwargs)
         assert form.is_valid()
         choices = [ch[0] for ch in form.fields['topic_type'].choices]
-        assert Topic.TYPE_CHOICES.topic_sticky in choices
+        assert Topic.TOPIC_STICKY in choices
 
     def test_allows_the_creation_of_announces_if_the_user_has_required_permission(self):
         # Setup
         form_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_announce,
+            'topic_type': Topic.TOPIC_ANNOUNCE,
         }
         form_kwargs = {
             'data': form_data,
@@ -312,19 +308,19 @@ class TestTopicForm(object):
         form = TopicForm(**form_kwargs)
         assert not form.is_valid()
         choices = [ch[0] for ch in form.fields['topic_type'].choices]
-        assert Topic.TYPE_CHOICES.topic_announce not in choices
+        assert Topic.TOPIC_ANNOUNCE not in choices
         assign_perm('can_post_announcements', self.user, self.top_level_forum)
         form = TopicForm(**form_kwargs)
         assert form.is_valid()
         choices = [ch[0] for ch in form.fields['topic_type'].choices]
-        assert Topic.TYPE_CHOICES.topic_announce in choices
+        assert Topic.TOPIC_ANNOUNCE in choices
 
     def test_can_be_used_to_update_the_topic_type(self):
         # Setup
         form_data = {
             'subject': 'Re: {}'.format(faker.text(max_nb_chars=200)),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         assign_perm('can_post_stickies', self.user, self.top_level_forum)
         # Run
@@ -338,15 +334,15 @@ class TestTopicForm(object):
         # Check
         assert form.is_valid()
         form.save()
-        self.topic = refresh(self.topic)
-        assert self.topic.type == Topic.TYPE_CHOICES.topic_sticky
+        self.topic.refresh_from_db()
+        assert self.topic.type == Topic.TOPIC_STICKY
 
     def test_can_append_poll_fields_if_the_user_is_allowed_to_create_polls(self):
         # Setup
         form_data = {
             'subject': 'Re: {}'.format(faker.text(max_nb_chars=200)),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         assign_perm('can_create_polls', self.user, self.top_level_forum)
         # Run
@@ -372,7 +368,7 @@ class TestTopicForm(object):
         form_data = {
             'subject': 'Re: {}'.format(faker.text(max_nb_chars=200)),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         # Run
         form = TopicForm(
@@ -393,7 +389,7 @@ class TestTopicForm(object):
         form_data = {
             'subject': 'Re: {}'.format(faker.text(max_nb_chars=200)),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': Topic.TYPE_CHOICES.topic_sticky,
+            'topic_type': Topic.TOPIC_STICKY,
         }
         assign_perm('can_create_polls', self.user, self.top_level_forum)
         poll = TopicPollFactory.create(topic=self.post.topic)

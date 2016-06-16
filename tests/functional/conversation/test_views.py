@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import constants as MSG  # noqa
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,15 +10,12 @@ from django.utils.encoding import force_bytes
 from faker import Factory as FakerFactory
 import pytest
 
-# Local application / specific library imports
-from machina.apps.forum_conversation.abstract_models import TOPIC_TYPES
 from machina.apps.forum_conversation.forum_attachments.forms import AttachmentFormset
 from machina.apps.forum_conversation.forum_polls.forms import TopicPollOptionFormset
 from machina.apps.forum_conversation.forum_polls.forms import TopicPollVoteForm
 from machina.apps.forum_conversation.signals import topic_viewed
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
-from machina.core.shortcuts import refresh
 from machina.test.context_managers import mock_signal_receiver
 from machina.test.factories import AttachmentFactory
 from machina.test.factories import create_forum
@@ -65,7 +60,9 @@ class TestTopicView(BaseClientTestCase):
 
     def test_browsing_works(self):
         # Setup
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run
         response = self.client.get(correct_url, follow=True)
         # Check
@@ -73,7 +70,9 @@ class TestTopicView(BaseClientTestCase):
 
     def test_triggers_a_viewed_signal(self):
         # Setup
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run & check
         with mock_signal_receiver(topic_viewed) as receiver:
             self.client.get(correct_url, follow=True)
@@ -81,7 +80,9 @@ class TestTopicView(BaseClientTestCase):
 
     def test_increases_the_views_counter_of_the_topic(self):
         # Setup
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         initial_views_count = self.topic.views_count
         # Run
         self.client.get(correct_url)
@@ -91,7 +92,9 @@ class TestTopicView(BaseClientTestCase):
 
     def test_cannot_change_the_updated_date_of_the_topic(self):
         # Setup
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         initial_updated_date = self.topic.updated
         # Run
         self.client.get(correct_url)
@@ -106,7 +109,9 @@ class TestTopicView(BaseClientTestCase):
         TopicReadTrackFactory.create(topic=new_topic, user=self.user)
         TopicReadTrackFactory.create(topic=self.topic, user=self.user)
         PostFactory.create(topic=self.topic, poster=self.user)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run
         self.client.get(correct_url)
         # Check
@@ -122,7 +127,9 @@ class TestTopicView(BaseClientTestCase):
         new_topic = create_topic(forum=self.top_level_forum, poster=self.user)
         PostFactory.create(topic=new_topic, poster=self.user)
         PostFactory.create(topic=self.topic, poster=self.user)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run
         self.client.get(correct_url)
         # Check
@@ -131,13 +138,15 @@ class TestTopicView(BaseClientTestCase):
         assert topic_tracks[0].topic == self.topic
         assert topic_tracks[0].user == self.user
 
-    def test_marks_the_related_topic_as_read_even_if_no_track_is_registered_for_the_related_forum(self):
+    def test_marks_the_related_topic_as_read_even_if_no_track_is_registered_for_the_related_forum(self):  # noqa
         # Setup
         top_level_forum_alt = create_forum()
         topic_alt = create_topic(forum=top_level_forum_alt, poster=self.user)
         PostFactory.create(topic=topic_alt, poster=self.user)
         assign_perm('can_read_forum', self.user, top_level_forum_alt)
-        correct_url = topic_alt.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': top_level_forum_alt.slug, 'forum_pk': top_level_forum_alt.pk,
+            'slug': topic_alt.slug, 'pk': topic_alt.id})
         # Run
         self.client.get(correct_url)
         # Check
@@ -151,7 +160,9 @@ class TestTopicView(BaseClientTestCase):
         ForumReadTrack.objects.all().delete()
         assign_perm('can_read_forum', AnonymousUser(), self.top_level_forum)
         self.client.logout()
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run
         self.client.get(correct_url)
         # Check
@@ -165,7 +176,9 @@ class TestTopicView(BaseClientTestCase):
         for _ in range(0, 40):
             # 15 posts per page
             PostFactory.create(topic=self.topic, poster=self.user)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run & check
         first_post_pk = self.topic.first_post.pk
         response = self.client.get(correct_url, {'post': first_post_pk}, follow=True)
@@ -182,7 +195,9 @@ class TestTopicView(BaseClientTestCase):
         for _ in range(0, 40):
             # 15 posts per page
             PostFactory.create(topic=self.topic, poster=self.user)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run & check
         bad_post_pk = self.topic.first_post.pk + 50000
         response = self.client.get(correct_url, {'post': bad_post_pk}, follow=True)
@@ -195,7 +210,9 @@ class TestTopicView(BaseClientTestCase):
         poll = TopicPollFactory.create(topic=self.topic)
         TopicPollOptionFactory.create(poll=poll)
         TopicPollOptionFactory.create(poll=poll)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run & check
         response = self.client.get(correct_url)
         assert response.context_data['poll'] == poll
@@ -204,7 +221,9 @@ class TestTopicView(BaseClientTestCase):
     def test_cannot_be_browsed_by_users_who_cannot_browse_the_related_forum(self):
         # Setup
         remove_perm('can_read_forum', self.user, self.top_level_forum)
-        correct_url = self.topic.get_absolute_url()
+        correct_url = reverse('forum_conversation:topic', kwargs={
+            'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
+            'slug': self.topic.slug, 'pk': self.topic.id})
         # Run
         response = self.client.get(correct_url, follow=True)
         # Check
@@ -267,7 +286,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
         }
         # Run
@@ -282,7 +301,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
         }
         # Run
         response = self.client.post(correct_url, post_data, follow=True)
@@ -290,7 +309,8 @@ class TestTopicCreateView(BaseClientTestCase):
         topic_url = reverse(
             'forum_conversation:topic',
             kwargs={'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
-                    'slug': response.context_data['topic'].slug, 'pk': response.context_data['topic'].pk})
+                    'slug': response.context_data['topic'].slug,
+                    'pk': response.context_data['topic'].pk})
         assert len(response.redirect_chain)
         last_url, status_code = response.redirect_chain[-1]
         assert topic_url in last_url
@@ -303,7 +323,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
         }
         # Run
         response = self.client.post(correct_url, post_data, follow=True)
@@ -341,7 +361,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
@@ -367,7 +387,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
             'poll_duration': 0,
@@ -388,8 +408,8 @@ class TestTopicCreateView(BaseClientTestCase):
         assert topic.poll.max_options == post_data['poll_max_options']
         assert topic.poll.duration == post_data['poll_duration']
         assert topic.poll.options.count() == 2
-        assert topic.poll.options.all()[0].text == post_data['poll-0-text']
-        assert topic.poll.options.all()[1].text == post_data['poll-1-text']
+        assert post_data['poll-0-text'] in topic.poll.options.values_list('text', flat=True)
+        assert post_data['poll-1-text'] in topic.poll.options.values_list('text', flat=True)
 
     def test_cannot_create_polls_with_invalid_options(self):
         # Setup
@@ -399,7 +419,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data_1 = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
             'poll_duration': 0,
@@ -412,7 +432,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data_2 = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
             'poll_duration': 0,
@@ -445,7 +465,7 @@ class TestTopicCreateView(BaseClientTestCase):
         assert 'attachment_formset' in response.context_data
         assert isinstance(response.context_data['attachment_formset'], AttachmentFormset)
 
-    def test_cannot_embed_an_attachment_formset_in_the_context_if_the_user_canot_create_attachments(self):
+    def test_cannot_embed_an_attachment_formset_in_the_context_if_the_user_canot_create_attachments(self):  # noqa
         # Setup
         correct_url = reverse('forum_conversation:topic_create', kwargs={
             'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk})
@@ -462,7 +482,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'attachment-0-id': '',
             'attachment-0-file': f,
@@ -476,7 +496,7 @@ class TestTopicCreateView(BaseClientTestCase):
         # Check
         assert response.context_data['attachment_preview']
 
-    def test_can_handle_multiple_attachment_previews_and_the_persistence_of_the_uploaded_files(self):
+    def test_can_handle_multiple_attachment_previews_and_the_persistence_of_the_uploaded_files(self):  # noqa
         # Setup
         assign_perm('can_attach_file', self.user, self.top_level_forum)
         correct_url = reverse('forum_conversation:topic_create', kwargs={
@@ -485,7 +505,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data_1 = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'attachment-0-id': '',
             'attachment-0-file': f,
@@ -497,7 +517,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data_2 = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'attachment-0-id': '',
             'attachment-0-file': '',
@@ -524,7 +544,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'attachment-0-id': '',
             'attachment-0-file': f,
             'attachment-0-comment': '',
@@ -548,7 +568,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'attachment-0-id': '',
             'attachment-0-file': f,
             'attachment-0-comment': faker.text(max_nb_chars=100) * 1000,
@@ -570,7 +590,7 @@ class TestTopicCreateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '',
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
         }
         # Run
         response = self.client.post(correct_url, post_data, follow=True)
@@ -643,7 +663,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
         }
         # Run
@@ -704,7 +724,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
@@ -735,7 +755,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'poll_question': faker.text(max_nb_chars=155),
             'poll_max_options': 1,
             'poll_duration': 0,
@@ -750,9 +770,9 @@ class TestTopicUpdateView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, post_data, follow=True)
         # Check
-        option_2 = refresh(option_2)
+        option_2.refresh_from_db()
         assert option_2.text == post_data['poll-1-text']
-        poll = refresh(poll)
+        poll.refresh_from_db()
         assert poll.question == post_data['poll_question']
 
     def test_allows_poll_creations(self):
@@ -765,7 +785,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'poll_question': faker.text(max_nb_chars=100),
             'poll_max_options': 1,
             'poll_duration': 0,
@@ -786,8 +806,8 @@ class TestTopicUpdateView(BaseClientTestCase):
         assert topic.poll.max_options == post_data['poll_max_options']
         assert topic.poll.duration == post_data['poll_duration']
         assert topic.poll.options.count() == 2
-        assert topic.poll.options.all()[0].text == post_data['poll-0-text']
-        assert topic.poll.options.all()[1].text == post_data['poll-1-text']
+        assert post_data['poll-0-text'] in topic.poll.options.values_list('text', flat=True)
+        assert post_data['poll-1-text'] in topic.poll.options.values_list('text', flat=True)
 
     def test_embed_an_attachment_formset_in_the_context_if_the_user_can_create_attachments(self):
         # Setup
@@ -801,7 +821,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         assert 'attachment_formset' in response.context_data
         assert isinstance(response.context_data['attachment_formset'], AttachmentFormset)
 
-    def test_cannot_embed_an_attachment_formset_in_the_context_if_the_user_canot_create_attachments(self):
+    def test_cannot_embed_an_attachment_formset_in_the_context_if_the_user_canot_create_attachments(self):  # noqa
         # Setup
         correct_url = reverse(
             'forum_conversation:topic_update',
@@ -822,7 +842,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'preview': 'Preview',
             'attachment-0-id': '',
             'attachment-0-file': f,
@@ -848,7 +868,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'attachment-0-id': attachment.pk,
             'attachment-0-file': attachment.file,
             'attachment-0-comment': 'new comment',
@@ -859,7 +879,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         # Run
         self.client.post(correct_url, post_data, follow=True)
         # Check
-        attachment = refresh(attachment)
+        attachment.refresh_from_db()
         assert attachment.comment == post_data['attachment-0-comment']
 
     def test_allows_attachment_creations(self):
@@ -875,7 +895,7 @@ class TestTopicUpdateView(BaseClientTestCase):
         post_data = {
             'subject': faker.text(max_nb_chars=200),
             'content': '[b]{}[/b]'.format(faker.text()),
-            'topic_type': TOPIC_TYPES.topic_post,
+            'topic_type': Topic.TOPIC_POST,
             'attachment-0-id': attachment.pk,
             'attachment-0-file': attachment.file,
             'attachment-0-comment': 'new comment',
@@ -1008,7 +1028,8 @@ class TestPostCreateView(BaseClientTestCase):
             'forum_conversation:topic',
             kwargs={
                 'forum_slug': self.top_level_forum.slug, 'forum_pk': self.top_level_forum.pk,
-                'slug': response.context_data['topic'].slug, 'pk': response.context_data['topic'].pk})
+                'slug': response.context_data['topic'].slug,
+                'pk': response.context_data['topic'].pk})
         assert len(response.redirect_chain)
         last_url, status_code = response.redirect_chain[-1]
         assert topic_url in last_url

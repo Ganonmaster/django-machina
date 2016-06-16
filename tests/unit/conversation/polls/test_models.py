@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.core.exceptions import ValidationError
 import pytest
 
-# Local application / specific library imports
 from machina.test.factories import create_forum
 from machina.test.factories import create_topic
 from machina.test.factories import PostFactory
@@ -103,7 +100,7 @@ class TestTopicPollVote(object):
                 poll_option=option_1, voter=None, anonymous_key=None)
             vote.clean()
 
-    def test_cannot_be_associated_with_a_user_and_a_session_key_at_the_same_time_to_be_created(self):
+    def test_cannot_be_associated_with_a_user_and_a_session_key_at_the_same_time_to_be_created(self):  # noqa
         # Setup
         poll = TopicPollFactory.create(topic=self.topic, max_options=2)
         option_1 = TopicPollOptionFactory.create(poll=poll)

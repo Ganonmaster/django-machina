@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.db.models import F
 from django.db.models import Q
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
 
@@ -29,36 +26,19 @@ class TrackingHandler(object):
         self.perm_handler = request.forum_permission_handler if request \
             else PermissionHandler()
 
-    def get_unread_forums(self, forums, user):
+    def get_unread_forums(self, user):
         """
-        Returns a list of unread forums for the given user from a given
-        set of forums.
+        Returns the list of unread forums for the given user.
         """
         unread_forums = []
-        processed_forums = []
 
         # A user which is not authenticated will never see a forum as unread
         if not user.is_authenticated():
             return unread_forums
 
-        # Forums are sorted by their position in the forums tree in order
-        # to limit the number of operations required to determine the unread
-        # forums below a forum which has the smallest position among the
-        # forums from the initial set.
-        # In fact, a forum is unread if at least one of its descendants
-        # (including itself) is unread.
-        # So the forums are sorted and then are processed by batches: from
-        # a forum with a small level and all of its descendants, we get the
-        # unread forums, and so on.
-        sorted_forums = sorted(forums, key=lambda forum: forum.level)
-
-        for forum in sorted_forums:
-            if forum not in unread_forums and forum not in processed_forums:
-                readable_forums = self.perm_handler.forum_list_filter(
-                    forum.get_descendants(include_self=True), user)
-                unread = ForumReadTrack.objects.get_unread_forums_from_list(readable_forums, user)
-                unread_forums.extend(unread)
-                processed_forums.extend(readable_forums)
+        readable_forums = self.perm_handler.forum_list_filter(Forum.objects.all(), user)
+        unread = ForumReadTrack.objects.get_unread_forums_from_list(readable_forums, user)
+        unread_forums.extend(unread)
 
         return unread_forums
 
@@ -76,28 +56,28 @@ class TrackingHandler(object):
 
         # A topic can be unread if a track for itself exists with a mark time that
         # is less important than its update date.
-        topic_tracks = TopicReadTrack.objects.filter(topic__pk__in=topics, user=user)
-        tracked_topics = topic_tracks.values_list('topic__pk', flat=True)
+        topic_ids = [topic.id for topic in topics]
+        topic_tracks = TopicReadTrack.objects.filter(topic__in=topic_ids, user=user)
+        tracked_topics = dict(topic_tracks.values_list('topic__pk', 'mark_time'))
 
-        if topic_tracks.exists():
-            tracks_dict = dict(topic_tracks.values_list('topic__pk', 'mark_time'))
+        if tracked_topics:
             for topic in topics:
                 topic_last_modification_date = topic.last_post_on or topic.created
-                if topic.id in tracks_dict.keys() and topic_last_modification_date > tracks_dict[topic.id]:
+                if topic.id in tracked_topics.keys() \
+                        and topic_last_modification_date > tracked_topics[topic.id]:
                     unread_topics.append(topic)
 
         # A topic can be unread if a track for its associated forum exists with
         # a mark time that is less important than its creation or update date.
         forum_ids = [topic.forum_id for topic in topics]
         forum_tracks = ForumReadTrack.objects.filter(forum_id__in=forum_ids, user=user)
-        tracked_forums = forum_tracks.values_list('forum__pk', flat=True)
+        tracked_forums = dict(forum_tracks.values_list('forum__pk', 'mark_time'))
 
-        if forum_tracks.exists():
-            tracks_dict = dict(forum_tracks.values_list('forum__pk', 'mark_time'))
+        if tracked_forums:
             for topic in topics:
                 topic_last_modification_date = topic.last_post_on or topic.created
-                if ((topic.forum_id in tracks_dict.keys() and topic.id not in tracked_topics) and
-                        topic_last_modification_date > tracks_dict[topic.forum_id]):
+                if ((topic.forum_id in tracked_forums.keys() and topic.id not in tracked_topics) and
+                        topic_last_modification_date > tracked_forums[topic.forum_id]):
                     unread_topics.append(topic)
 
         # A topic can be unread if no tracks exists for it
@@ -138,7 +118,8 @@ class TrackingHandler(object):
         except ForumReadTrack.DoesNotExist:
             forum_track = None
 
-        if forum_track is None or (topic.last_post_on and forum_track.mark_time < topic.last_post_on):
+        if forum_track is None \
+                or (topic.last_post_on and forum_track.mark_time < topic.last_post_on):
             topic_track, created = TopicReadTrack.objects.get_or_create(topic=topic, user=user)
             if not created:
                 topic_track.save()  # mark_time filled
@@ -147,7 +128,8 @@ class TrackingHandler(object):
             # be marked as read.
             unread_topics = forum.topics.filter(
                 Q(tracks__user=user, tracks__mark_time__lt=F('last_post_on')) |
-                Q(forum__tracks__user=user, forum__tracks__mark_time__lt=F('last_post_on'), tracks__isnull=True)).exclude(id=topic.id)
+                Q(forum__tracks__user=user, forum__tracks__mark_time__lt=F('last_post_on'),
+                  tracks__isnull=True)).exclude(id=topic.id)
 
             if not unread_topics.exists():
                 # The topics that are marked as read inside the forum for the given user
@@ -166,7 +148,8 @@ class TrackingHandler(object):
             # be marked as read.
             unread_topics = forum.topics.filter(
                 Q(tracks__user=user, tracks__mark_time__lt=F('last_post_on')) |
-                Q(forum__tracks__user=user, forum__tracks__mark_time__lt=F('last_post_on'), tracks__isnull=True))
+                Q(forum__tracks__user=user, forum__tracks__mark_time__lt=F('last_post_on'),
+                  tracks__isnull=True))
             if unread_topics.exists():
                 break
 

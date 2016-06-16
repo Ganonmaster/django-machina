@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.contrib.auth.models import AnonymousUser
 from django.template import Context
 from django.template.base import Template
 from django.test.client import RequestFactory
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
 from machina.test.factories import create_category_forum
@@ -87,7 +84,9 @@ class TestHasBeenCompletedByTag(BasePollsTagsTestCase):
         def get_rendered(poll, user):
             request = self.request_factory.get('/')
             request.user = user
-            t = Template(self.loadstatement + '{% if poll|has_been_completed_by:request.user %}HAS_VOTED{% else %}HAS_NOT_VOTED{% endif %}')
+            t = Template(
+                self.loadstatement + '{% if poll|has_been_completed_by:request.user %}HAS_VOTED'
+                                     '{% else %}HAS_NOT_VOTED{% endif %}')
             c = Context({'poll': poll, 'request': request})
             rendered = t.render(c)
 
@@ -107,7 +106,8 @@ class TestHasBeenCompletedByTag(BasePollsTagsTestCase):
         def get_rendered(poll, user):
             request = self.request_factory.get('/')
             request.user = user
-            t = Template(self.loadstatement + '{% if poll|has_been_completed_by:request.user %}HAS_VOTED{% else %}HAS_NOT_VOTED{% endif %}')
+            t = Template(self.loadstatement + '{% if poll|has_been_completed_by:request.user %}'
+                                              'HAS_VOTED{% else %}HAS_NOT_VOTED{% endif %}')
             c = Context({'poll': poll, 'request': request})
             rendered = t.render(c)
 

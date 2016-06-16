@@ -7,11 +7,15 @@ __pycache__
 *.egg/
 .cache/
 dist/
+build/
 docs/_build/
 public/
 whoosh_index/
+node_modules/
 .tox
+npm-debug.log
 tests/_testdata/media/machina
+tests/settings_local.py
 
 # If pipeline is used, don't commit generated CSS files
 machina/static/machina/less/*.css

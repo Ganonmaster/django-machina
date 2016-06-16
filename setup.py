@@ -4,6 +4,8 @@ from os.path import join
 from setuptools import find_packages
 from setuptools import setup
 
+import machina
+
 
 def read_relative_file(filename):
     """
@@ -16,22 +18,21 @@ def read_relative_file(filename):
 
 setup(
     name='django-machina',
-    version=read_relative_file('VERSION').strip(),
+    version=machina.__version__,
     author='Morgan Aubert',
     author_email='morgan.aubert@zoho.com',
     packages=find_packages(),
     include_package_data=True,
     url='https://github.com/ellmetha/django-machina',
     license='BSD',
-    description='A Django forum engine for building powerful and pretty community driven websites.',
+    description='A Django forum engine for building powerful community driven websites.',
     long_description=read_relative_file('README.rst'),
     zip_safe=False,
     install_requires=[
-        'django>=1.7,<1.9',
-        'django-model-utils>=2.0',
+        'django>=1.8',
 
         # Django-mptt is required to handle the tree hierarchy of nested forums
-        'django-mptt>=0.7.0',
+        'django-mptt>=0.8.0',
 
         # Machina uses Django-haystack to provide search support
         'django-haystack>=2.1.0',
@@ -42,11 +43,12 @@ setup(
         # Machina uses Markdown by default as a syntax for forum messages ; but you can change this
         'django-markdown>=0.7.0',
 
-        # Machina's default templates use django-widget-tweaks to render form fields ; but you can override this
+        # Machina's default templates use django-widget-tweaks to render form fields ; but you can
+        # override this
         'django-widget-tweaks>=1.4',
     ],
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',

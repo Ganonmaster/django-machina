@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
+from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 import pytest
 
-# Local application / specific library imports
 from machina.apps.forum_feeds.feeds import LastTopicsFeed
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
@@ -88,28 +86,31 @@ class TestLastTopicsFeed(object):
         feed = LastTopicsFeed()
         request = self.factory.get('/')
         request.user = self.user
+        request.forum_permission_handler = PermissionHandler()
         # Run
         feed.get_object(request)
         topics = feed.items()
         # Check
         assert list(topics) == [self.topic_3, self.topic_2, self.topic_1, ]
 
-    def test_can_return_all_the_topics_that_can_be_read_by_the_current_user_in_a_forum_without_its_descendants(self):
+    def test_can_return_all_the_topics_that_can_be_read_by_the_current_user_in_a_forum_without_its_descendants(self):  # noqa
         # Setup
         feed = LastTopicsFeed()
         request = self.factory.get('/')
         request.user = self.user
+        request.forum_permission_handler = PermissionHandler()
         # Run
         feed.get_object(request, forum_pk=self.forum_2.pk, descendants=False)
         topics = feed.items()
         # Check
         assert list(topics) == [self.topic_2, ]
 
-    def test_can_return_all_the_topics_that_can_be_read_by_the_current_user_in_a_forum_including_its_descendants(self):
+    def test_can_return_all_the_topics_that_can_be_read_by_the_current_user_in_a_forum_including_its_descendants(self):  # noqa
         # Setup
         feed = LastTopicsFeed()
         request = self.factory.get('/')
         request.user = self.user
+        request.forum_permission_handler = PermissionHandler()
         # Run
         feed.get_object(request, forum_pk=self.forum_2.pk, descendants=True)
         topics = feed.items()
@@ -121,5 +122,19 @@ class TestLastTopicsFeed(object):
         feed = LastTopicsFeed()
         request = self.factory.get('/')
         request.user = self.user
+        request.forum_permission_handler = PermissionHandler()
         # Run & check
         assert feed.item_pubdate(self.topic_2) == self.topic_2.created
+
+    def test_can_return_the_proper_item_link(self):
+        # Setup
+        feed = LastTopicsFeed()
+        request = self.factory.get('/')
+        request.user = self.user
+        request.forum_permission_handler = PermissionHandler()
+        # Run & check
+        assert feed.item_link(self.topic_2) == reverse(
+            'forum_conversation:topic', kwargs={
+                'forum_slug': self.topic_2.forum.slug, 'forum_pk': self.topic_2.forum.pk,
+                'slug': self.topic_2.slug, 'pk': self.topic_2.id,
+            })

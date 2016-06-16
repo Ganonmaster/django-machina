@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 try:
     from imp import reload
 except ImportError:
     pass
 
-# Third party imports
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError
 from django.core.files import File
+from django.utils.encoding import force_text
 from django.utils.six import BytesIO
 import pytest
 
-# Local application / specific library imports
 from machina.conf import settings as machina_settings
 from machina.core.compat import PILImage as Image
 from machina.models import fields
 from tests.models import RESIZED_IMAGE_HEIGHT
 from tests.models import RESIZED_IMAGE_WIDTH
-from tests.models import TestableModel
+from tests.models import DummyModel
 
 
 @pytest.mark.django_db
@@ -40,7 +38,7 @@ class TestMarkupTextField(object):
 
     def test_can_accept_none_values(self):
         # Setup
-        test = TestableModel()
+        test = DummyModel()
         test.content = None
         # Run
         test.save()
@@ -52,14 +50,14 @@ class TestMarkupTextField(object):
     def test_correctly_saves_its_data(self):
         # Run & check
         for markup_text, expected_html_text in self.MARKUP_TEXT_FIELD_TESTS:
-            test = TestableModel()
+            test = DummyModel()
             test.content = markup_text
             test.save()
             assert test.content.rendered == expected_html_text
 
     def test_provides_access_to_the_raw_text_and_to_the_rendered_text(self):
         # Setup
-        test = TestableModel()
+        test = DummyModel()
         test.content = '**hello**'
         test.save()
         field = test._meta.get_field('content')
@@ -75,7 +73,15 @@ class TestMarkupTextField(object):
         assert test.content.rendered == '<p><strong>hello world!</strong></p>'
         assert len(test.content) == markup_content_len
         with pytest.raises(AttributeError):
-            print(TestableModel.content.rendered)
+            print(DummyModel.content.rendered)
+
+    def test_content_returns_the_raw_value_when_converted_to_a_string(self):
+        # Setup
+        test = DummyModel()
+        test.content = '**hello world!**'
+        test.save()
+        # Run & check
+        assert force_text(test.content) == '**hello world!**'
 
     def test_should_not_allow_non_accessible_markup_languages(self):
         # Run & check
@@ -88,14 +94,26 @@ class TestMarkupTextField(object):
 
     def test_should_use_a_default_text_input_widget_with_formfields(self):
         # Setup
+        machina_settings.MACHINA_MARKUP_WIDGET = None
+
         class TestableForm(forms.ModelForm):
             class Meta:
-                model = TestableModel
+                model = DummyModel
                 exclude = []
+
         # Run
         form = TestableForm()
+
         # Check
-        assert isinstance(form.fields['content'].widget, forms.Textarea)
+        assert type(form.fields['content'].widget) == forms.Textarea
+
+    def test_sets_the_markup_widget_to_a_textarea_if_it_is_none(self):
+        # Setup
+        machina_settings.MACHINA_MARKUP_WIDGET = None
+        # Run
+        widget_class = fields._get_markup_widget()
+        # Check
+        assert widget_class == forms.Textarea
 
     def test_can_use_a_custom_form_widget(self):
         # Setup
@@ -103,7 +121,7 @@ class TestMarkupTextField(object):
 
         class TestableForm(forms.ModelForm):
             class Meta:
-                model = TestableModel
+                model = DummyModel
                 exclude = []
         # Run
         form = TestableForm()
@@ -118,7 +136,7 @@ class TestMarkupTextField(object):
         with pytest.raises(ImproperlyConfigured):
             class TestableForm(forms.ModelForm):
                 class Meta:
-                    model = TestableModel
+                    model = DummyModel
                     exclude = []
         machina_settings.MACHINA_MARKUP_WIDGET = None
 
@@ -155,7 +173,7 @@ class TestExtendedImageField(object):
 
         for img in self.images_dict.values():
             img.close()
-        tests = TestableModel.objects.all()
+        tests = DummyModel.objects.all()
         for test in tests:
             try:
                 test.resized_image.delete()
@@ -168,7 +186,7 @@ class TestExtendedImageField(object):
 
     def test_can_resize_images_before_saving_them(self):
         # Setup
-        test = TestableModel()
+        test = DummyModel()
         # Run
         field = test._meta.get_field('resized_image')
         field.save_form_data(test, self.images_dict['to_be_resized_image'])
@@ -180,7 +198,7 @@ class TestExtendedImageField(object):
 
     def test_should_not_accept_images_with_incorrect_sizes_or_dimensions(self):
         # Setup
-        test = TestableModel()
+        test = DummyModel()
         field = test._meta.get_field('validated_image')
         invalid_images = ['too_large_image', 'too_wide_image', 'too_high_image', ]
         # Run & check

@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.core.exceptions import ValidationError
 from faker import Factory as FakerFactory
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
-from machina.core.shortcuts import refresh
 from machina.test.factories import build_topic
 from machina.test.factories import create_category_forum
 from machina.test.factories import create_forum
@@ -46,7 +42,7 @@ class TestTopic(object):
         # Setup
         sticky_topic = create_topic(
             forum=self.top_level_forum, poster=self.u1,
-            type=Topic.TYPE_CHOICES.topic_sticky)
+            type=Topic.TOPIC_STICKY)
         # Run & check
         assert sticky_topic.is_sticky
 
@@ -54,14 +50,14 @@ class TestTopic(object):
         # Setup
         announce = create_topic(
             forum=self.top_level_forum, poster=self.u1,
-            type=Topic.TYPE_CHOICES.topic_announce)
+            type=Topic.TOPIC_ANNOUNCE)
         # Run & check
         assert announce.is_announce
 
     def test_knows_if_it_is_locked(self):
         # Run & check
         assert not self.topic.is_locked
-        self.topic.status = self.topic.STATUS_CHOICES.topic_locked
+        self.topic.status = self.topic.TOPIC_LOCKED
         self.topic.save()
         assert self.topic.is_locked
 
@@ -87,8 +83,8 @@ class TestTopic(object):
         # Run & check
         middle_post = PostFactory.create(topic=self.topic, poster=self.u1)
         PostFactory.create(topic=self.topic, poster=self.u1, approved=False)
-        topic = refresh(self.topic)
-        assert topic.last_post == middle_post
+        self.topic.refresh_from_db()
+        assert self.topic.last_post == middle_post
 
     def test_cannot_update_its_last_post_date_with_the_creation_date_of_a_non_approved_post(self):
         # Setup
@@ -96,8 +92,8 @@ class TestTopic(object):
         # Run & check
         middle_post = PostFactory.create(topic=self.topic, poster=self.u1)
         PostFactory.create(topic=self.topic, poster=self.u1, approved=False)
-        topic = refresh(self.topic)
-        assert topic.last_post_on == middle_post.created
+        self.topic.refresh_from_db()
+        assert self.topic.last_post_on == middle_post.created
 
     def test_has_the_first_post_name_as_subject(self):
         # Run & check
@@ -156,10 +152,18 @@ class TestTopic(object):
         self.topic.forum = new_top_level_forum
         self.topic.save()
         # Check
-        self.top_level_forum = Forum.objects.get(pk=self.top_level_forum.pk)  # Reload the forum from DB
+        self.top_level_forum = Forum.objects.get(pk=self.top_level_forum.pk)
         assert self.topic.forum == new_top_level_forum
         assert self.top_level_forum.topics_count == 0
         assert self.top_level_forum.posts_count == 0
+
+    def test_knows_if_a_user_has_subscribed_to_the_topic(self):
+        # Setup
+        self.topic.subscribers.add(self.u1)
+        u2 = UserFactory.create()
+        # Run & check
+        assert self.topic.has_subscriber(self.u1)
+        assert not self.topic.has_subscriber(u2)
 
 
 @pytest.mark.django_db
@@ -184,6 +188,10 @@ class TestPost(object):
         post = PostFactory.create(topic=self.topic, poster=self.u1)
         assert post.is_topic_tail
 
+    def test_knows_if_it_is_alone_in_the_topic(self):
+        # Run & check
+        assert self.post.is_alone
+
     def test_knows_its_position_inside_the_topic(self):
         # Setup
         post_2 = PostFactory.create(topic=self.topic, poster=self.u1)
@@ -205,7 +213,16 @@ class TestPost(object):
         with pytest.raises(Topic.DoesNotExist):
             Topic.objects.get(pk=self.topic_pk)
 
-    def test_save_triggers_the_update_of_the_member_posts_count_if_the_related_post_is_approved(self):
+    def test_deletion_should_result_in_the_topic_deletion_if_it_is_alone_in_the_topic_and_not_approved(self):  # noqa
+        # Run
+        self.post.approved = False
+        self.post.save()
+        self.post.delete()
+        # Check
+        with pytest.raises(Topic.DoesNotExist):
+            Topic.objects.get(pk=self.topic_pk)
+
+    def test_save_triggers_the_update_of_the_member_posts_count_if_the_related_post_is_approved(self):  # noqa
         # Setup
         post = PostFactory.build(topic=self.topic, poster=self.u1)
         profile = ForumProfile.objects.get(user=self.u1)
@@ -213,10 +230,10 @@ class TestPost(object):
         # Run
         post.save()
         # Check
-        profile = refresh(profile)
+        profile.refresh_from_db()
         assert profile.posts_count == initial_posts_count + 1
 
-    def test_save_cannot_trigger_the_update_of_the_member_posts_count_if_the_related_post_is_not_approved(self):
+    def test_save_cannot_trigger_the_update_of_the_member_posts_count_if_the_related_post_is_not_approved(self):  # noqa
         # Setup
         post = PostFactory.build(topic=self.topic, poster=self.u1, approved=False)
         profile = ForumProfile.objects.get(user=self.u1)
@@ -224,10 +241,10 @@ class TestPost(object):
         # Run
         post.save()
         # Check
-        profile = refresh(profile)
+        profile.refresh_from_db()
         assert profile.posts_count == initial_posts_count
 
-    def test_save_trigger_the_update_of_the_member_posts_count_if_the_related_post_switch_to_approved(self):
+    def test_save_trigger_the_update_of_the_member_posts_count_if_the_related_post_switch_to_approved(self):  # noqa
         # Setup
         post = PostFactory.create(topic=self.topic, poster=self.u1, approved=False)
         profile = ForumProfile.objects.get(user=self.u1)
@@ -236,7 +253,7 @@ class TestPost(object):
         post.approved = True
         post.save()
         # Check
-        profile = refresh(profile)
+        profile.refresh_from_db()
         assert profile.posts_count == initial_posts_count + 1
 
     def test_cannot_be_cleaned_if_it_is_not_associated_with_a_user_or_an_anonymous_user(self):

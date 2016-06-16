@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.conf.urls import url
 from django.utils.translation import ugettext_lazy as _
 
-# Local application / specific library imports
 from machina.core.app import Application
 from machina.core.loading import get_class
 
@@ -23,7 +20,8 @@ class FeedsApp(Application):
             url(_(r'^forum/(?P<forum_slug>[\w-]+)-(?P<forum_pk>\d+)/topics/$'),
                 self.latest_topics_feed(), name='forum_latest_topics'),
             url(_(r'^forum/(?P<forum_slug>[\w-]+)-(?P<forum_pk>\d+)/topics/all/$'),
-                self.latest_topics_feed(), {'descendants': True}, name='forum_latest_topics_with_descendants'),
+                self.latest_topics_feed(), {'descendants': True},
+                name='forum_latest_topics_with_descendants'),
         ]
 
 

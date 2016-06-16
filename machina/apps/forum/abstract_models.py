@@ -1,26 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import force_text
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
-from model_utils import Choices
 from mptt.models import MPTTModel
 from mptt.models import TreeForeignKey
 
-# Local application / specific library imports
 from machina.apps.forum import signals
 from machina.conf import settings as machina_settings
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
-from machina.core.shortcuts import refresh
-from machina.models import ActiveModel
 from machina.models import DatedModel
 from machina.models.fields import ExtendedImageField
 from machina.models.fields import MarkupTextField
@@ -28,21 +22,15 @@ from machina.models.fields import MarkupTextField
 ForumManager = get_class('forum.managers', 'ForumManager')
 
 
-FORUM_TYPES = Choices(
-    (0, 'forum_post', _('Default forum')),
-    (1, 'forum_cat', _('Category forum')),
-    (2, 'forum_link', _('Link forum')),
-)
-
-
 @python_2_unicode_compatible
-class AbstractForum(MPTTModel, ActiveModel, DatedModel):
+class AbstractForum(MPTTModel, DatedModel):
     """
     The main forum model.
     The tree hierarchy of forums and categories is managed by the MPTTModel
     which is part of django-mptt.
     """
-    parent = TreeForeignKey('self', null=True, blank=True, related_name='children', verbose_name=_('Parent'))
+    parent = TreeForeignKey(
+        'self', null=True, blank=True, related_name='children', verbose_name=_('Parent'))
 
     name = models.CharField(max_length=100, verbose_name=_('Name'))
     slug = models.SlugField(max_length=255, verbose_name=_('Slug'))
@@ -58,25 +46,34 @@ class AbstractForum(MPTTModel, ActiveModel, DatedModel):
 
     # Forums can be simple links (eg. wiki, documentation, etc)
     link = models.URLField(verbose_name=_('Forum link'), null=True, blank=True)
-    link_redirects = models.BooleanField(verbose_name=_('Track link redirects count'),
-                                         help_text=_('Records the number of times a forum link was clicked'),
-                                         default=False)
+    link_redirects = models.BooleanField(
+        verbose_name=_('Track link redirects count'),
+        help_text=_('Records the number of times a forum link was clicked'), default=False)
 
     # Category, Default forum or Link ; that's what a forum can be
-    TYPE_CHOICES = FORUM_TYPES
-    type = models.PositiveSmallIntegerField(choices=TYPE_CHOICES, verbose_name=_('Forum type'), db_index=True)
+    FORUM_POST, FORUM_CAT, FORUM_LINK = 0, 1, 2
+    TYPE_CHOICES = (
+        (FORUM_POST, _('Default forum')),
+        (FORUM_CAT, _('Category forum')),
+        (FORUM_LINK, _('Link forum')),
+    )
+    type = models.PositiveSmallIntegerField(
+        choices=TYPE_CHOICES, verbose_name=_('Forum type'), db_index=True)
 
     # Tracking data (only approved topics and posts are recorded)
-    posts_count = models.PositiveIntegerField(verbose_name=_('Number of posts'), editable=False, blank=True, default=0)
-    topics_count = models.PositiveIntegerField(verbose_name=_('Number of topics'), editable=False, blank=True, default=0)
-    link_redirects_count = models.PositiveIntegerField(verbose_name=_('Track link redirects count'),
-                                                       editable=False, blank=True, default=0)
+    posts_count = models.PositiveIntegerField(
+        verbose_name=_('Number of posts'), editable=False, blank=True, default=0)
+    topics_count = models.PositiveIntegerField(
+        verbose_name=_('Number of topics'), editable=False, blank=True, default=0)
+    link_redirects_count = models.PositiveIntegerField(
+        verbose_name=_('Track link redirects count'), editable=False, blank=True, default=0)
     last_post_on = models.DateTimeField(verbose_name=_('Last post added on'), blank=True, null=True)
 
     # Display options
-    display_sub_forum_list = models.BooleanField(verbose_name=_('Display in parent-forums legend'),
-                                                 help_text=_('Displays this forum on the legend of its parent-forum (sub forums list)'),
-                                                 default=True)
+    display_sub_forum_list = models.BooleanField(
+        verbose_name=_('Display in parent-forums legend'),
+        help_text=_('Displays this forum on the legend of its parent-forum (sub forums list)'),
+        default=True)
 
     objects = ForumManager()
 
@@ -103,21 +100,21 @@ class AbstractForum(MPTTModel, ActiveModel, DatedModel):
         """
         Returns True if the forum is a category.
         """
-        return self.type == FORUM_TYPES.forum_cat
+        return self.type == self.FORUM_CAT
 
     @property
     def is_forum(self):
         """
         Returns True if the forum is a a default forum.
         """
-        return self.type == FORUM_TYPES.forum_post
+        return self.type == self.FORUM_POST
 
     @property
     def is_link(self):
         """
         Returns True if the forum is a link.
         """
-        return self.type == FORUM_TYPES.forum_link
+        return self.type == self.FORUM_LINK
 
     def clean(self):
         super(AbstractForum, self).clean()
@@ -149,7 +146,8 @@ class AbstractForum(MPTTModel, ActiveModel, DatedModel):
             self.update_trackers()
             # The previous parent trackers should also be updated
             if old_instance.parent:
-                old_parent = refresh(old_instance.parent)
+                old_parent = old_instance.parent
+                old_parent.refresh_from_db()
                 old_parent.update_trackers()
             # Trigger the 'forum_moved' signal
             signals.forum_moved.send(sender=self, previous_parent=old_instance.parent)
@@ -192,7 +190,3 @@ class AbstractForum(MPTTModel, ActiveModel, DatedModel):
         # Trigger the parent trackers update if necessary
         if self.parent:
             self.parent.update_trackers()
-
-    def get_absolute_url(self):
-        from django.core.urlresolvers import reverse
-        return reverse('forum:forum', kwargs={'slug': self.slug, 'pk': str(self.id)})

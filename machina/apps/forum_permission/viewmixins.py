@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
+from __future__ import unicode_literals
 from collections import Iterable
 
-# Third party imports
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import PermissionDenied
@@ -11,8 +10,6 @@ from django.contrib.auth.decorators import REDIRECT_FIELD_NAME
 from django.http import HttpResponseRedirect
 from django.utils.http import urlquote
 from django.utils.six import string_types
-
-# Local application / specific library imports
 
 
 class PermissionRequiredMixin(object):
@@ -58,8 +55,8 @@ class PermissionRequiredMixin(object):
         else:
             raise ImproperlyConfigured(
                 '\'PermissionRequiredMixin\' requires \'permission_required\' '
-                'attribute to be set to \'<app_label>.<permission codename>\' but is set to {} instead'.format(
-                    self.permission_required)
+                'attribute to be set to \'<app_label>.<permission codename>\' but is set to {} '
+                'instead'.format(self.permission_required)
             )
         return perms
 
@@ -80,9 +77,8 @@ class PermissionRequiredMixin(object):
         """
         Retrieve the controlled object and perform the permissions check.
         """
-        obj = (hasattr(self, 'get_controlled_object') and self.get_controlled_object()
-               or hasattr(self, 'get_object') and self.get_object()
-               or getattr(self, 'object', None))
+        obj = (hasattr(self, 'get_controlled_object') and self.get_controlled_object() or
+               hasattr(self, 'get_object') and self.get_object() or getattr(self, 'object', None))
         user = request.user
 
         # Get the permissions to check

@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
+from __future__ import unicode_literals
+
 from django.db.models import Q
 from mptt.managers import TreeManager
-
-# Local application / specific library imports
 
 
 class ForumManager(TreeManager):
@@ -36,12 +34,12 @@ class ForumManager(TreeManager):
 
         return super(ForumManager, self).get_queryset().filter(
             # Forums that have a top-level category has parent
-            Q(parent__type=self.model.TYPE_CHOICES.forum_cat, **{parent_selector(2): parent_value}) |
+            Q(parent__type=self.model.FORUM_CAT, **{parent_selector(2): parent_value}) |
             # Sub forums that can be displayed
             Q(display_sub_forum_list=True, **{parent_selector(2): parent_value}) |
             # Children of forums that have a category as parent
-            Q(parent__parent__type=self.model.TYPE_CHOICES.forum_cat,
-                parent__type=self.model.TYPE_CHOICES.forum_post,
+            Q(parent__parent__type=self.model.FORUM_CAT,
+                parent__type=self.model.FORUM_POST,
                 display_sub_forum_list=True,
                 **{parent_selector(3): parent_value}) |
             # Category, top-level forums and links

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
+from __future__ import unicode_literals
 from collections import OrderedDict
 
-# Third party imports
 from django import forms
 from django.conf.urls import url
 from django.contrib import admin
@@ -21,9 +20,8 @@ from django.utils.translation import ugettext_lazy as _
 from mptt.forms import TreeNodeChoiceField
 from mptt.exceptions import InvalidMove
 
-# Local application / specific library imports
-from machina.core.compat import patterns
 from machina.core.db.models import get_model
+from machina.core.loading import get_class
 from machina.models.fields import MarkupTextField
 from machina.models.fields import MarkupTextFieldWidget
 
@@ -32,6 +30,7 @@ ForumPermission = get_model('forum_permission', 'ForumPermission')
 GroupForumPermission = get_model('forum_permission', 'GroupForumPermission')
 UserForumPermission = get_model('forum_permission', 'UserForumPermission')
 
+PermissionConfig = get_class('forum_permission.defaults', 'PermissionConfig')
 
 PERM_GRANTED = 'granted'
 PERM_NOT_GRANTED = 'not-granted'
@@ -64,12 +63,13 @@ class ForumAdmin(admin.ModelAdmin):
 
     editpermissions_index_view_template_name = 'admin/forum/forum/editpermissions_index.html'
     editpermissions_user_view_template_name = 'admin/forum/forum/editpermissions_user.html'
-    editpermissions_anonymous_user_view_template_name = 'admin/forum/forum/editpermissions_anonymous_user.html'
+    editpermissions_anonymous_user_view_template_name = \
+        'admin/forum/forum/editpermissions_anonymous_user.html'
     editpermissions_group_view_template_name = 'admin/forum/forum/editpermissions_group.html'
 
     def get_urls(self):
         urls = super(ForumAdmin, self).get_urls()
-        forum_admin_urls = patterns([
+        forum_admin_urls = [
             url(r'^(?P<forum_id>[0-9]+)/move-forum/(?P<direction>up|down)/$',
                 self.admin_site.admin_view(self.moveforum_view),
                 name='forum_forum_move'),
@@ -97,7 +97,7 @@ class ForumAdmin(admin.ModelAdmin):
             url(r'^(?P<forum_id>[0-9]+)/edit-permissions/group/(?P<group_id>[0-9]+)/$',
                 self.admin_site.admin_view(self.editpermissions_group_view),
                 name='forum_forum_editpermission_group'),
-        ])
+        ]
         return forum_admin_urls + urls
 
     def get_forum_perms_base_context(self, request, obj=None):
@@ -359,7 +359,8 @@ class PickUserForm(forms.Form):
     anonymous_user = forms.BooleanField(
         label=_('Anonymous'),
         initial=False,
-        help_text=_('Please select this option if you want to edit the permissions of the anonymous user'))
+        help_text=_(
+            'Please select this option if you want to edit the permissions of the anonymous user'))
 
     def __init__(self, *args, **kwargs):
         admin_site = kwargs.pop('admin_site')
@@ -411,13 +412,18 @@ class PermissionsForm(forms.Form):
             (PERM_GRANTED, _('Granted')),
             (PERM_NOT_GRANTED, _('Not granted')),
         )
-        for codename, p in self.permissions_dict.items():
-            self.fields[codename] = forms.ChoiceField(
-                label=p[0].name,
-                choices=f_choices,
-                required=False,
-                widget=forms.RadioSelect)
-            self.fields[codename].initial = p[1]
+        for scope in PermissionConfig.scopes:
+            codenames = [x['fields']['codename'] for x in PermissionConfig.permissions
+                         if x['scope'] == scope]
+            permissions = filter(lambda v: v[0] in codenames, self.permissions_dict.items())
+            for codename, p in permissions:
+                self.fields[codename] = forms.ChoiceField(
+                    label=p[0].name,
+                    choices=f_choices,
+                    required=False,
+                    widget=forms.RadioSelect)
+                self.fields[codename].initial = p[1]
+                self.fields[codename].scope = scope
 
 
 admin.site.register(Forum, ForumAdmin)

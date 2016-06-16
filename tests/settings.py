@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 import os
 
-# Third party imports
-# Local application / specific library imports
 from machina import get_apps as get_machina_apps
 from machina import MACHINA_MAIN_STATIC_DIR
 from machina import MACHINA_MAIN_TEMPLATE_DIR
@@ -19,12 +16,31 @@ location = lambda x: os.path.join(TEST_ROOT, x)
 DEBUG = False
 TEMPLATE_DEBUG = False
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:'
+DB_CONFIG = os.environ.get('DB', 'sqlite')
+
+if DB_CONFIG == 'sqlite':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:'
+        }
     }
-}
+elif DB_CONFIG == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'machina_test',
+            'USER': 'postgres',
+        }
+    }
+elif DB_CONFIG == 'mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'machina_test',
+            'USER': 'root',
+        }
+    }
 
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
@@ -116,3 +132,8 @@ CACHES = {
 SILENCED_SYSTEM_CHECKS = ['1_6.W001']
 
 SECRET_KEY = 'key'
+
+try:
+    from .settings_local import *  # noqa
+except ImportError:
+    pass

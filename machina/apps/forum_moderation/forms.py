@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
 from machina.forms.widgets import SelectWithDisabled
@@ -31,7 +28,7 @@ class TopicMoveForm(forms.Form):
 
         super(TopicMoveForm, self).__init__(*args, **kwargs)
 
-        self.allowed_forums = self.perm_handler.get_movable_forums(self.user)
+        self.allowed_forums = self.perm_handler.get_target_forums_for_moved_topics(self.user)
         forum_choices = []
 
         for f in self.allowed_forums:
@@ -55,7 +52,7 @@ class TopicMoveForm(forms.Form):
 
         if forum_id:
             forum = Forum.objects.get(pk=forum_id)
-            if forum.is_category or forum.id == self.topic.forum.id:
+            if forum.is_category or forum.is_link or forum.id == self.topic.forum.id:
                 raise forms.ValidationError('You cannot select this forum as a destination')
 
         return forum

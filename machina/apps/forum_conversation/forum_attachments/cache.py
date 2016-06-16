@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.conf import settings
 from django.core.cache import caches
 from django.core.cache import InvalidCacheBackendError
@@ -13,7 +11,6 @@ from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.utils.datastructures import MultiValueDict
 from django.utils.six import BytesIO
 
-# Local application / specific library imports
 from machina.conf import settings as machina_settings
 
 
@@ -35,7 +32,8 @@ class AttachmentCache(object):
             cache = caches[machina_settings.ATTACHMENT_CACHE_NAME]
         except InvalidCacheBackendError:
             raise ImproperlyConfigured(
-                'The attachment cache backend ({}) is not configured'.format(machina_settings.ATTACHMENT_CACHE_NAME))
+                'The attachment cache backend ({}) is not configured'.format(
+                    machina_settings.ATTACHMENT_CACHE_NAME))
         return cache
 
     def set(self, key, files):

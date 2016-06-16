@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.core.exceptions import ValidationError
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
-from machina.core.shortcuts import refresh
 from machina.test.factories import build_category_forum
 from machina.test.factories import build_link_forum
 from machina.test.factories import create_category_forum
@@ -58,7 +54,7 @@ class TestForum(object):
     def test_must_have_a_link_in_case_of_a_link_forum(self):
         # Run & check
         with pytest.raises(ValidationError):
-            forum = Forum(parent=self.top_level_forum, name='sub_link_forum', type=Forum.TYPE_CHOICES.forum_link)
+            forum = Forum(parent=self.top_level_forum, name='sub_link_forum', type=Forum.FORUM_LINK)
             forum.full_clean()
 
     def test_saves_its_numbers_of_posts_and_topics(self):
@@ -104,7 +100,7 @@ class TestForum(object):
         sub_level_forum.parent = self.top_level_cat
         sub_level_forum.save()
         # Check
-        self.top_level_forum = Forum.active.get(pk=self.top_level_forum.pk)  # Reload the forum from DB
+        self.top_level_forum = Forum.objects.get(pk=self.top_level_forum.pk)
         assert self.top_level_forum.posts_count == 0
         assert self.top_level_forum.topics_count == 0
 
@@ -116,7 +112,7 @@ class TestForum(object):
         # Run
         p2 = PostFactory.create(topic=topic, poster=self.u1)
         # Check
-        sub_level_forum = refresh(sub_level_forum)
+        sub_level_forum.refresh_from_db()
         assert sub_level_forum.last_post_on == p2.created
 
     def test_can_reset_last_post_datetime_if_all_topics_have_been_deleted(self):
@@ -127,5 +123,5 @@ class TestForum(object):
         # Run
         topic.delete()
         # Check
-        sub_level_forum = refresh(sub_level_forum)
+        sub_level_forum.refresh_from_db()
         assert sub_level_forum.last_post_on is None

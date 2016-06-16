@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 import datetime as dt
 
-# Third party imports
 from django.contrib.auth.models import AnonymousUser
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
 from machina.conf import settings as machina_settings
@@ -59,7 +56,7 @@ class TestPermissionHandler(object):
         self.forum_1_topic = create_topic(forum=self.forum_1, poster=self.u1)
         self.forum_3_topic = create_topic(forum=self.forum_3, poster=self.u1)
         self.forum_3_topic_2 = create_topic(
-            forum=self.forum_3, poster=self.u1, status=Topic.STATUS_CHOICES.topic_locked)
+            forum=self.forum_3, poster=self.u1, status=Topic.TOPIC_LOCKED)
 
         # Set up some posts
         self.post_1 = PostFactory.create(topic=self.forum_1_topic, poster=self.u1)
@@ -304,7 +301,7 @@ class TestPermissionHandler(object):
     def test_knows_that_a_user_cannot_add_posts_to_a_locked_topic(self):
         # Setup
         assign_perm('can_reply_to_topics', self.u1, self.forum_1)
-        self.forum_1_topic.status = self.forum_1_topic.STATUS_CHOICES.topic_locked
+        self.forum_1_topic.status = self.forum_1_topic.TOPIC_LOCKED
         self.forum_1_topic.save()
         # Run & check
         assert not self.perm_handler.can_add_post(self.forum_1_topic, self.u1)
@@ -314,7 +311,7 @@ class TestPermissionHandler(object):
         assign_perm('can_reply_to_topics', self.u1, self.forum_1)
         assign_perm('can_reply_to_locked_topics', self.u1, self.forum_1)
         u2 = UserFactory.create()
-        self.forum_1_topic.status = self.forum_1_topic.STATUS_CHOICES.topic_locked
+        self.forum_1_topic.status = self.forum_1_topic.TOPIC_LOCKED
         self.forum_1_topic.save()
         # Run & check
         assert self.perm_handler.can_add_post(self.forum_1_topic, self.u1)
@@ -524,6 +521,34 @@ class TestPermissionHandler(object):
         # Run & check
         assert self.perm_handler.can_move_topics(self.forum_1, u2)
 
+    def test_knows_the_forums_that_can_receive_moved_topics(self):
+        # Setup
+        assign_perm('can_move_topics', self.u1, self.forum_1)
+        u2 = UserFactory.create(is_superuser=True)
+        u3 = UserFactory.create()
+        # Run & check
+        assert set(self.perm_handler.get_target_forums_for_moved_topics(self.u1)) \
+            == set([self.forum_1, ])
+        assert set(self.perm_handler.get_target_forums_for_moved_topics(u2)) \
+            == set(Forum.objects.filter(type=Forum.FORUM_POST))
+        assert list(self.perm_handler.get_target_forums_for_moved_topics(u3)) == []
+
+    def test_cannot_allow_forum_categories_to_receive_moved_topics(self):
+        # Setup
+        assign_perm('can_move_topics', self.u1, self.forum_1)
+        assign_perm('can_move_topics', self.u1, self.top_level_cat)
+        # Run & check
+        assert set(self.perm_handler.get_target_forums_for_moved_topics(self.u1)) \
+            == set([self.forum_1, ])
+
+    def test_cannot_allow_forum_links_to_receive_moved_topics(self):
+        # Setup
+        assign_perm('can_move_topics', self.u1, self.forum_1)
+        assign_perm('can_move_topics', self.u1, self.forum_3)
+        # Run & check
+        assert set(self.perm_handler.get_target_forums_for_moved_topics(self.u1)) \
+            == set([self.forum_1, ])
+
     def test_knows_if_a_user_can_delete_topics(self):
         # Setup
         u2 = UserFactory.create()
@@ -537,16 +562,6 @@ class TestPermissionHandler(object):
         u2 = UserFactory.create(is_superuser=True)
         # Run & check
         assert self.perm_handler.can_delete_topics(self.forum_1, u2)
-
-    def test_knows_the_forums_whose_topics_can_be_moved(self):
-        # Setup
-        assign_perm('can_move_topics', self.u1, self.forum_1)
-        u2 = UserFactory.create(is_superuser=True)
-        u3 = UserFactory.create()
-        # Run & check
-        assert set(self.perm_handler.get_movable_forums(self.u1)) == set([self.forum_1, ])
-        assert set(self.perm_handler.get_movable_forums(u2)) == set(Forum.objects.all())
-        assert list(self.perm_handler.get_movable_forums(u3)) == []
 
     def test_knows_if_a_user_can_update_topics_to_normal_topics(self):
         # Setup
@@ -614,5 +629,50 @@ class TestPermissionHandler(object):
         ]
         machina_settings.DEFAULT_AUTHENTICATED_USER_FORUM_PERMISSIONS = codenames
         # Run & check
-        assert set(self.perm_handler._get_forums_for_user(self.u1, codenames)) == set(Forum.objects.all())
+        assert set(self.perm_handler._get_forums_for_user(self.u1, codenames)) \
+            == set(Forum.objects.all())
         machina_settings.DEFAULT_AUTHENTICATED_USER_FORUM_PERMISSIONS = []
+
+    def test_knows_if_a_user_can_subscribe_to_topics(self):
+        # Setup
+        u2 = UserFactory.create()
+        assign_perm('can_read_forum', self.u1, self.forum_1)
+        # Run & check
+        assert self.perm_handler.can_subscribe_to_topic(self.forum_1_topic, self.u1)
+        assert not self.perm_handler.can_subscribe_to_topic(self.forum_1_topic, u2)
+
+    def test_knows_that_a_superuser_can_subscribe_to_topics(self):
+        # Setup
+        u2 = UserFactory.create(is_superuser=True)
+        # Run & check
+        assert self.perm_handler.can_subscribe_to_topic(self.forum_1_topic, u2)
+
+    def test_knows_that_an_anonymous_user_cannot_subscribe_to_topics(self):
+        # Setup
+        u2 = AnonymousUser()
+        assign_perm('can_read_forum', u2, self.forum_1)
+        # Run & check
+        assert not self.perm_handler.can_subscribe_to_topic(self.forum_1_topic, u2)
+
+    def test_knows_if_a_user_can_unsubscribe_from_topics(self):
+        # Setup
+        self.forum_1_topic.subscribers.add(self.u1)
+        u2 = UserFactory.create()
+        assign_perm('can_read_forum', self.u1, self.forum_1)
+        # Run & check
+        assert self.perm_handler.can_unsubscribe_from_topic(self.forum_1_topic, self.u1)
+        assert not self.perm_handler.can_unsubscribe_from_topic(self.forum_1_topic, u2)
+
+    def test_knows_that_a_superuser_can_unsubscribe_from_topics(self):
+        # Setup
+        u2 = UserFactory.create(is_superuser=True)
+        self.forum_1_topic.subscribers.add(u2)
+        # Run & check
+        assert self.perm_handler.can_unsubscribe_from_topic(self.forum_1_topic, u2)
+
+    def test_knows_that_an_anonymous_user_cannot_unsubscribe_from_topics(self):
+        # Setup
+        u2 = AnonymousUser()
+        assign_perm('can_read_forum', u2, self.forum_1)
+        # Run & check
+        assert not self.perm_handler.can_unsubscribe_from_topic(self.forum_1_topic, u2)

@@ -5,18 +5,13 @@ Requirements
 ------------
 
 * `Python`_ 2.7, 3.3, 3.4 or 3.5
-* `Django`_ 1.7.x or 1.8.x
+* `Django`_ 1.8.x or 1.9.x
 * `Pillow`_ 2.2. or higher
-* `Django-model-utils`_ 2.0. or higher
-* `Django-mptt`_ 0.7. or higher
+* `Django-mptt`_ 0.8. or higher
 * `Django-haystack`_ 2.1. or higher
 * `Django-markdown`_ 0.7. or higher
 * `Django-widget-tweaks`_ 1.4. or higher
 
-
-.. warning:: While *django-machina* is compatible with Django 1.7.x, this version of Django
-             is no longer supported by the Django team. Please upgrade to
-             Django 1.8.x immediately.
 
 .. note::
 
@@ -26,7 +21,6 @@ Requirements
 .. _Python: https://www.python.org
 .. _Django: https://www.djangoproject.com
 .. _Pillow: http://python-pillow.github.io/
-.. _Django-model-utils: https://github.com/carljm/django-model-utils
 .. _Django-mptt: https://github.com/django-mptt/django-mptt
 .. _Django-haystack: https://github.com/django-haystack/django-haystack
 .. _Django-markdown: https://github.com/klen/django_markdown
@@ -37,11 +31,11 @@ Installation
 
 Install *django-machina* using::
 
-  pip install git+git://github.com/ellmetha/django-machina.git
+  pip install django-machina
 
 .. note::
 
-	Please remember that *django-machina* is still in heavy development. It is not yet suitable for production environments.
+	Please remember that *django-machina* is currently in beta. It is not yet suitable for production environments.
 
 Project configuration
 ---------------------
@@ -83,7 +77,7 @@ Then update your ``TEMPLATE_CONTEXT_PROCESSORS`` setting as follows::
     'machina.core.context_processors.metadata',
   )
 
-Next add the ``machina.apps.forum_permission.middleware.ForumPermissionMiddleware`` to your ``MIDDLEWARE_CLASSES`` setting::
+Add the ``machina.apps.forum_permission.middleware.ForumPermissionMiddleware`` to your ``MIDDLEWARE_CLASSES`` setting::
 
   MIDDLEWARE_CLASSES = (
       # ...
@@ -91,7 +85,7 @@ Next add the ``machina.apps.forum_permission.middleware.ForumPermissionMiddlewar
       'machina.apps.forum_permission.middleware.ForumPermissionMiddleware',
   )
 
-Then edit your ``TEMPLATE_DIRS`` setting so that it includes the *django-machina*'s template directory::
+Edit your ``TEMPLATE_DIRS`` setting so that it includes the *django-machina*'s template directory::
 
   from machina import MACHINA_MAIN_TEMPLATE_DIR
 
@@ -100,7 +94,7 @@ Then edit your ``TEMPLATE_DIRS`` setting so that it includes the *django-machina
     MACHINA_MAIN_TEMPLATE_DIR,
   )
 
-Then edit your ``STATICFILES_DIRS`` setting so that it includes the *django-machina*'s static directory::
+Edit your ``STATICFILES_DIRS`` setting so that it includes the *django-machina*'s static directory::
 
   from machina import MACHINA_MAIN_STATIC_DIR
 
@@ -146,14 +140,14 @@ You can also decide to use a more powerfull backend such as *Solr* or *Whoosh*::
 Database and migrations
 -----------------------
 
-*Django-machina* only provides new-style migrations. So if you are using Django 1.7 or higher, just use the ``syncdb`` or ``migrate`` commands::
+*Django-machina* only provides new-style migrations. So if you are using Django 1.8 or higher, just use the ``syncdb`` or ``migrate`` commands::
 
   python manage.py migrate
 
 URLs configuration
 ------------------
 
-Finally you have to update your main ``urls.py`` module in order to include the forum' URLs and the *django-markdown*' URLs::
+Finally you have to update your main ``urls.py`` module in order to include the forum's URLs and the *django-markdown*'s URLs::
 
   from machina.app import board
 

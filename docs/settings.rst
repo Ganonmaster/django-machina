@@ -17,7 +17,7 @@ The forum name.
 ``MACHINA_MARKUP_LANGUAGE``
 ---------------------------
 
-Default: ``('django_markdown.utils.markdown', {})``
+Default: ``('django_markdown.utils.markdown', {'safe': True})``
 
 This setting defines how posts content is translated into HTML on the forum. It should be a two-tuple. The first element should be a string corresponding to the Python dotted path to a function returning HTML from a content expressed in a markup language. The second element of the tuple is a dictionary of keyword arguments to pass to the latest function (the dictionary should be empty if the function does not require any argument). Note that if you do not want to use a markup language such as Markdown or BBCode (eg. if you are using a Wysiwyg editor), you can set this setting to ``None``.
 
@@ -71,6 +71,15 @@ Default: ``'Re:'``
 
 This is the prefix used to pre-populate the subject of a topic reply. For example: if a reply is being posted for the *Lorem Ipsum* topic, the prefilled subject will be *Re: Lorem Ipsum* in the reply form.
 
+.. _setting-post-content-max-length:
+
+``MACHINA_POST_CONTENT_MAX_LENGTH``
+-----------------------------------
+
+Default: ``None``
+
+The maximum number of characters that can be used in a forum post. A value of ``None`` means that there is no maximum length for forum posts.
+
 ``MACHINA_TOPIC_POSTS_NUMBER_PER_PAGE``
 ---------------------------------------
 
@@ -87,6 +96,13 @@ The number of posts displayed when posting a reply. The posts displayed are rela
 
 Polls
 *****
+
+``MACHINA_POLL_MAX_OPTIONS_PER_POLL``
+-------------------------------------
+
+Default: ``30``
+
+This setting can be used to configure the maximum number of options that can be defined when creating a poll.
 
 ``MACHINA_POLL_MAX_OPTIONS_PER_USER``
 -------------------------------------
@@ -111,6 +127,13 @@ The media subdirectory where forum attachments should be uploaded.
 Default: ``'machina_attachments'``
 
 The name of the cache used to store temporary post attachments.
+
+``MACHINA_ATTACHMENT_MAX_FILES_PER_POST``
+-----------------------------------------
+
+Default: ``15``
+
+This setting can be used to configure the maximum number of attachments that can be associated to a forum post.
 
 Member
 ******
@@ -170,14 +193,30 @@ The imposed avatar maximum height for forum member profiles. This setting affect
 
 Default: ``0``
 
-The maximum avatar size for forum member profiles. A value of ``0`` means that there is no size limitation.
+The maximum avatar size for forum member profiles (the size must be expressed in bytes). A value of ``0`` means that there is no size limitation.
+
+.. _setting-profile-signature-max-length:
 
 ``MACHINA_PROFILE_SIGNATURE_MAX_LENGTH``
 ----------------------------------------
 
 Default: ``255``
 
-The maximum number of characters that can be used in a member signature.
+The maximum number of characters that can be used in a member signature. A value of ``None`` means that there is no maximum length for member signatures.
+
+``MACHINA_PROFILE_RECENT_POSTS_NUMBER``
+---------------------------------------
+
+Default: ``15``
+
+The maximum number of recent posts that can be displayed in forum member profiles.
+
+``MACHINA_PROFILE_POSTS_NUMBER_PER_PAGE``
+-----------------------------------------
+
+Default: ``15``
+
+The number of posts displayed inside one page of a forum member's posts list.
 
 Permission
 **********
@@ -203,6 +242,6 @@ Default: ``[]``
 
 For a full list of the available forum permissions, please refer to :doc:`forum_permissions`.
 
-.. note::
+.. warning::
 
   Keep in mind that the permissions specified in the ``MACHINA_DEFAULT_AUTHENTICATED_USER_FORUM_PERMISSIONS`` list will be automatically granted for authenticated users if the targetted forum has no other permissions for these users. This behavior will apply if you create a new forum without a specific permission configuration ; so be careful with the permission code names you put in this setting.

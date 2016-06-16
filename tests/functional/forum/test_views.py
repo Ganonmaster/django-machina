@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
+from django.core.urlresolvers import reverse
 import pytest
 
-# Local application / specific library imports
 from machina.apps.forum.signals import forum_viewed
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
@@ -39,7 +37,8 @@ class TestForumView(BaseClientTestCase):
 
     def test_browsing_works(self):
         # Setup
-        correct_url = self.top_level_forum.get_absolute_url()
+        correct_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_forum.slug, 'pk': self.top_level_forum.id})
         # Run
         response = self.client.get(correct_url, follow=True)
         # Check
@@ -48,7 +47,8 @@ class TestForumView(BaseClientTestCase):
     def test_cannot_be_browsed_by_users_who_cannot_read_the_forum(self):
         # Setup
         remove_perm('can_read_forum', self.user, self.top_level_forum)
-        correct_url = self.top_level_forum.get_absolute_url()
+        correct_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_forum.slug, 'pk': self.top_level_forum.id})
         # Run
         response = self.client.get(correct_url, follow=True)
         # Check
@@ -56,8 +56,10 @@ class TestForumView(BaseClientTestCase):
 
     def test_triggers_a_viewed_signal(self):
         # Setup
-        forum_url, link_url = (self.top_level_forum.get_absolute_url(),
-                               self.top_level_link.get_absolute_url())
+        forum_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_forum.slug, 'pk': self.top_level_forum.id})
+        link_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_link.slug, 'pk': self.top_level_link.id})
 
         # Run & check
         for url in [forum_url, link_url]:
@@ -67,7 +69,8 @@ class TestForumView(BaseClientTestCase):
 
     def test_redirects_to_the_link_of_a_link_forum(self):
         # Setup
-        correct_url = self.top_level_link.get_absolute_url()
+        correct_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_link.slug, 'pk': self.top_level_link.id})
         # Run
         response = self.client.get(correct_url)
         # Check
@@ -76,10 +79,12 @@ class TestForumView(BaseClientTestCase):
 
     def test_increases_the_redirects_counter_of_a_link_forum(self):
         # Setup
-        correct_url = self.top_level_link.get_absolute_url()
+        correct_url = reverse('forum:forum', kwargs={
+            'slug': self.top_level_link.slug, 'pk': self.top_level_link.id})
         initial_redirects_count = self.top_level_link.link_redirects_count
         # Run
         self.client.get(correct_url)
         # Check
-        top_level_link = self.top_level_link.__class__._default_manager.get(pk=self.top_level_link.pk)
+        top_level_link = self.top_level_link.__class__._default_manager.get(
+            pk=self.top_level_link.pk)
         assert top_level_link.link_redirects_count == initial_redirects_count + 1

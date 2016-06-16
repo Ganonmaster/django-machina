@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
 from django.core.urlresolvers import reverse
 from faker import Factory as FakerFactory
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
 from machina.test.factories import create_category_forum
@@ -73,7 +70,8 @@ class TestMarkForumsReadView(BaseClientTestCase):
     def test_browsing_works(self):
         # Setup
         correct_url_1 = reverse('forum_tracking:mark_all_forums_read')
-        correct_url_2 = reverse('forum_tracking:mark_subforums_read', kwargs={'pk': self.top_level_cat_1.pk})
+        correct_url_2 = reverse(
+            'forum_tracking:mark_subforums_read', kwargs={'pk': self.top_level_cat_1.pk})
         # Run
         response_1 = self.client.get(correct_url_1, follow=True)
         response_2 = self.client.get(correct_url_2, follow=True)
@@ -90,8 +88,7 @@ class TestMarkForumsReadView(BaseClientTestCase):
         response = self.client.get(correct_url, follow=True)
         # Check
         assert response.status_code == 200
-        assert list(self.tracks_handler.get_unread_forums(
-            Forum.objects.all(), self.user)) == []
+        assert list(self.tracks_handler.get_unread_forums(self.user)) == []
 
     def test_can_mark_subforums_read(self):
         # Setup
@@ -99,15 +96,14 @@ class TestMarkForumsReadView(BaseClientTestCase):
         PostFactory.create(topic=new_topic, poster=self.u1)
         new_topic = create_topic(forum=self.forum_4, poster=self.u1)
         PostFactory.create(topic=new_topic, poster=self.u1)
-        correct_url = reverse('forum_tracking:mark_subforums_read', kwargs={'pk': self.top_level_cat_1.pk})
+        correct_url = reverse(
+            'forum_tracking:mark_subforums_read', kwargs={'pk': self.top_level_cat_1.pk})
         # Run
         response = self.client.get(correct_url, follow=True)
         # Check
         assert response.status_code == 200
-        assert list(self.tracks_handler.get_unread_forums(
-            self.top_level_cat_1.get_descendants(include_self=True), self.user)) == []
-        assert list(self.tracks_handler.get_unread_forums(
-            Forum.objects.all(), self.user)) == [self.top_level_cat_2, self.forum_4, ]
+        assert set(self.tracks_handler.get_unread_forums(self.user)) \
+            == set([self.top_level_cat_2, self.forum_4, ])
 
 
 class TestMarkTopicsReadView(BaseClientTestCase):
@@ -169,7 +165,8 @@ class TestMarkTopicsReadView(BaseClientTestCase):
         response = self.client.get(correct_url, follow=True)
         # Check
         assert response.status_code == 200
-        assert list(self.tracks_handler.get_unread_topics(self.forum_4.topics.all(), self.user)) == []
+        assert list(self.tracks_handler.get_unread_topics(self.forum_4.topics.all(), self.user)) \
+            == []
 
     def test_do_not_perform_anything_if_the_user_has_not_the_required_permission(self):
         # Setup

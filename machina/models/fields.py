@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 from os import path
 
-# Third party imports
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
 from django.db.models import signals
+from django.forms import Textarea
 from django.forms import ValidationError
 from django.template.defaultfilters import filesizeformat
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.encoding import smart_str
 from django.utils.functional import curry
 from django.utils.safestring import mark_safe
@@ -18,7 +18,6 @@ from django.utils.safestring import SafeData
 from django.utils.six import BytesIO
 from django.utils.translation import ugettext_lazy as _
 
-# Local application / specific library imports
 from machina.conf import settings as machina_settings
 
 
@@ -28,6 +27,7 @@ _rendered_field_name = lambda name: '_{}_rendered'.format(name)
 def _get_markup_widget():
     dotted_path = machina_settings.MACHINA_MARKUP_WIDGET
     try:
+        assert dotted_path is not None
         module, widget = dotted_path.rsplit('.', 1)
         module, widget = smart_str(module), smart_str(widget)
         widget = getattr(__import__(module, {}, {}, [widget]), widget)
@@ -36,6 +36,8 @@ def _get_markup_widget():
         raise ImproperlyConfigured(_('Could not import MACHINA_MARKUP_WIDGET {}: {}').format(
             machina_settings.MACHINA_MARKUP_WIDGET,
             e))
+    except AssertionError:
+        return Textarea
 
 MarkupTextFieldWidget = _get_markup_widget()
 
@@ -59,6 +61,7 @@ except AttributeError as e:
     raise ImproperlyConfigured(_('MACHINA_MARKUP_LANGUAGE setting is required'))
 
 
+@python_2_unicode_compatible
 class MarkupText(SafeData):
     def __init__(self, instance, field_name, rendered_field_name):
         # Stores a reference to the instance along with field names
@@ -83,7 +86,7 @@ class MarkupText(SafeData):
     rendered = property(_get_rendered)
 
     # Allows display via templates to work without safe filter
-    def __unicode__(self):
+    def __str__(self):
         return self.raw
 
     # Return the length of the rendered string so that bool tests work as expected
@@ -93,11 +96,11 @@ class MarkupText(SafeData):
 
 class MarkupTextDescriptor(object):
     """
-    Acts as the Django's default attribute descriptor class (enabled via the SubfieldBase metaclass).
-    The main difference is that it does not call to_python() on the MarkupTextField class. Instead, it
-    stores the two different values of a markup content (the raw and the rendered data) separately.
-    These values can be separately updated when something is assigned. When the field is accessed,
-    a MarkupText instance will be returned ; this one is built with the current data.
+    Acts as the Django's default attribute descriptor class, enabled via the SubfieldBase metaclass.
+    The main difference is that it does not call to_python() on the MarkupTextField class. Instead,
+    it stores the two different values of a markup content (the raw and the rendered data)
+    separately. These values can be separately updated when something is assigned. When the field is
+    accessed, a MarkupText instance will be returned ; this one is built with the current data.
     """
     def __init__(self, field):
         self.field = field
@@ -128,18 +131,18 @@ class MarkupTextField(models.TextField):
     """
     def __init__(self, *args, **kwargs):
         # For Django 1.7 migration serializer compatibility: the frozen version of a
-        # MarkupTextField can't try to add a '*_rendered' field, because the '*_rendered' field itself
-        # is frozen / serialized as well.
+        # MarkupTextField can't try to add a '*_rendered' field, because the '*_rendered' field
+        # itself is frozen / serialized as well.
         self.add_rendered_field = not kwargs.pop('no_rendered_field', False)
         super(MarkupTextField, self).__init__(*args, **kwargs)
 
-    def deconstruct(self):
+    def deconstruct(self):  # pragma: no cover
         """
-        As outlined in the Django 1.7 documentation, this method tells Django how to take an instance
-        of a new field in order to reduce it to a serialized form. This can be used to configure what
-        arguments need to be passed to the __init__() method of the field in order to re-create it.
-        We use it in order to pass the 'no_rendered_field' to the __init__() method. This will allow
-        the _rendered field to not be added to the model class twice.
+        As outlined in the Django 1.7 documentation, this method tells Django how to take an
+        instance of a new field in order to reduce it to a serialized form. This can be used to
+        configure what arguments need to be passed to the __init__() method of the field in order to
+        re-create it. We use it in order to pass the 'no_rendered_field' to the __init__() method.
+        This will allow the _rendered field to not be added to the model class twice.
         """
         name, import_path, args, kwargs = super(MarkupTextField, self).deconstruct()
         kwargs['no_rendered_field'] = True
@@ -184,13 +187,9 @@ class MarkupTextField(models.TextField):
         setattr(instance, _rendered_field_name(self.attname), rendered)
 
     def formfield(self, **kwargs):
-        if machina_settings.MACHINA_MARKUP_WIDGET:
-            widget = _get_markup_widget()
-            defaults = {'widget': widget}
-            defaults.update(kwargs)
-        else:
-            defaults = kwargs
-
+        widget = _get_markup_widget()
+        defaults = {'widget': widget}
+        defaults.update(kwargs)
         field = super(MarkupTextField, self).formfield(**defaults)
         return field
 
@@ -229,13 +228,17 @@ class ExtendedImageField(models.ImageField):
 
         # Controls the image size
         image_width, image_height = get_image_dimensions(data)
-        if (self.min_width and self.max_width and not self.min_width <= image_width <= self.max_width):
+        if self.min_width and self.max_width \
+                and not self.min_width <= image_width <= self.max_width:
             raise ValidationError(
-                _('Images of width lesser than {}px or greater than {}px or are not allowed. The width of your image is {}px').format(
+                _('Images of width lesser than {}px or greater than {}px or are not allowed. '
+                  'The width of your image is {}px').format(
                     self.min_width, self.max_width, image_width))
-        if self.min_height and self.max_height and not self.min_height <= image_height <= self.max_height:
+        if self.min_height and self.max_height \
+                and not self.min_height <= image_height <= self.max_height:
             raise ValidationError(
-                _('Images of height lesser than {}px or greater than {}px or are not allowed. The height of your image is {}px').format(
+                _('Images of height lesser than {}px or greater than {}px or are not allowed. '
+                  'The height of your image is {}px').format(
                     self.min_height, self.max_height, image_height))
 
         return data

@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django import forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
-# Local application / specific library imports
 from machina.conf import settings as machina_settings
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
@@ -20,7 +17,8 @@ TopicPoll = get_model('forum_polls', 'TopicPoll')
 
 PermissionHandler = get_class('forum_permission.handler', 'PermissionHandler')
 
-get_anonymous_user_forum_key = get_class('forum_permission.shortcuts', 'get_anonymous_user_forum_key')
+get_anonymous_user_forum_key = get_class(
+    'forum_permission.shortcuts', 'get_anonymous_user_forum_key')
 
 
 class PostForm(forms.ModelForm):
@@ -96,7 +94,8 @@ class PostForm(forms.ModelForm):
 
 
 class TopicForm(PostForm):
-    topic_type = forms.ChoiceField(label=_('Post topic as'), choices=Topic.TYPE_CHOICES, required=False)
+    topic_type = forms.ChoiceField(
+        label=_('Post topic as'), choices=Topic.TYPE_CHOICES, required=False)
 
     def __init__(self, *args, **kwargs):
         super(TopicForm, self).__init__(*args, **kwargs)
@@ -108,12 +107,12 @@ class TopicForm(PostForm):
 
         if not self.can_add_stickies:
             choices = filter(
-                lambda t: t[0] != Topic.TYPE_CHOICES.topic_sticky,
+                lambda t: t[0] != Topic.TOPIC_STICKY,
                 self.fields['topic_type'].choices)
             self.fields['topic_type'].choices = choices
         if not self.can_add_announcements:
             choices = filter(
-                lambda t: t[0] != Topic.TYPE_CHOICES.topic_announce,
+                lambda t: t[0] != Topic.TOPIC_ANNOUNCE,
                 self.fields['topic_type'].choices)
             self.fields['topic_type'].choices = choices
 
@@ -121,7 +120,8 @@ class TopicForm(PostForm):
         if self.can_create_polls:
             self.fields['poll_question'] = forms.CharField(
                 label=_('Poll question'), required=False,
-                help_text=_('Enter a question to associate a poll with the topic or leave blank to not create a poll.'),
+                help_text=_('Enter a question to associate a poll with the topic or leave blank to '
+                            'not create a poll.'),
                 max_length=TopicPoll._meta.get_field('question').max_length)
             self.fields['poll_max_options'] = forms.IntegerField(
                 label=_('Maximum number of poll options per user'), required=False,
@@ -131,7 +131,7 @@ class TopicForm(PostForm):
             self.fields['poll_duration'] = forms.IntegerField(
                 label=_('For how many days the poll should be run?'), required=False,
                 help_text=_('Enter 0 or leave blank for a never ending poll.'),
-                initial=0)
+                min_value=0, initial=0)
             self.fields['poll_user_changes'] = forms.BooleanField(
                 label=_('Allow re-voting?'), required=False,
                 help_text=_('If enabled users are able to change their vote.'),
@@ -156,13 +156,13 @@ class TopicForm(PostForm):
             if 'topic_type' in self.cleaned_data and len(self.cleaned_data['topic_type']):
                 topic_type = self.cleaned_data['topic_type']
             else:
-                topic_type = Topic.TYPE_CHOICES.topic_post
+                topic_type = Topic.TOPIC_POST
 
             topic = Topic(
                 forum=self.forum,
                 subject=self.cleaned_data['subject'],  # The topic's name is the post's name
                 type=topic_type,
-                status=Topic.STATUS_CHOICES.topic_unlocked,
+                status=Topic.TOPIC_UNLOCKED,
                 approved=self.perm_handler.can_post_without_approval(self.forum, self.user))
             if not self.user.is_anonymous():
                 topic.poster = self.user

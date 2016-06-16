@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.models import Group
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 
 ForumPermission = get_model('forum_permission', 'ForumPermission')
@@ -57,7 +54,8 @@ def remove_perm(perm, user_or_group, forum=None):
 
 def get_identity(identity):
     """
-    Returns a (user_obj, None) tuple or a (None, group_obj) tuple depending on the considered instance.
+    Returns a (user_obj, None) tuple or a (None, group_obj) tuple depending on the considered
+    instance.
     """
     if isinstance(identity, AnonymousUser):
         return identity, None

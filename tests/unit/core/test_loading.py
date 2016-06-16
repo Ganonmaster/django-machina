@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
-import unittest
 
-# Third party imports
-from django import VERSION as DJANGO_VERSION
 from django.conf import settings
 from django.test.utils import override_settings
 import pytest
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
 from machina.core.loading import AppNotFoundError
 from machina.core.loading import ClassNotFoundError
@@ -40,15 +35,6 @@ class TestClassLoadingFunctions(object):
         with pytest.raises(ClassNotFoundError):
             get_class('forum.models', 'Foo')
 
-    @unittest.skipIf(
-        DJANGO_VERSION >= (1, 7),
-        'not required with Django >= 1.7 because dummy installed apps) will be detected by the app registry')
-    def test_raises_in_case_of_import_error_with_django_less_than_1_dot_7(self):
-        # Run & check
-        with override_settings(INSTALLED_APPS=('it.is.bad', )):
-            with pytest.raises(AppNotFoundError):
-                get_class('bad', 'Foo')
-
     def test_raise_importerror_if_app_raises_importerror(self):
         # Setup
         apps = list(settings.INSTALLED_APPS)
@@ -67,7 +53,8 @@ class TestClassLoadingFunctionsWithOverrides(object):
     @pytest.fixture(autouse=True)
     def setup(self):
         self.installed_apps = list(settings.INSTALLED_APPS)
-        self.installed_apps[self.installed_apps.index('machina.apps.forum')] = 'tests._testsite.apps.forum'
+        self.installed_apps[self.installed_apps.index('machina.apps.forum')] = \
+            'tests._testsite.apps.forum'
 
     def test_can_load_a_class_defined_in_a_local_module(self):
         with override_settings(INSTALLED_APPS=self.installed_apps):

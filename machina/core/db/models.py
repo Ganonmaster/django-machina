@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
+from __future__ import unicode_literals
 from importlib import import_module
 
-# Third party imports
 from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
 from django.core.exceptions import AppRegistryNotReady
-
-# Local application / specific library imports
 
 
 # The following is mainly inspired from the model loading tools provided
@@ -61,4 +58,4 @@ def model_factory(abstract_class):
     model_name = abstract_class.__name__.replace('Abstract', '')
 
     if not is_model_registered(app_label, model_name):
-        return type(model_name, (abstract_class, ), {'__module__': __name__, })
+        return type(str(model_name), (abstract_class, ), {'__module__': __name__, })

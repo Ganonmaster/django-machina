@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 
 from __future__ import unicode_literals
-import gettext
 
 from unipath import Path
 
@@ -27,7 +26,7 @@ TIME_ZONE = 'Europe/Paris'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'fr'
+LANGUAGE_CODE = 'en'
 
 LANGUAGES = (
    ('en', "English"),
@@ -92,7 +91,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'onlyatest833090dhkgrfgdfg*fds5645456fg'
+SECRET_KEY = 'NOTSECRET'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -102,12 +101,12 @@ TEMPLATE_LOADERS = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
+    'django.template.context_processors.debug',
+    'django.template.context_processors.i18n',
+    'django.template.context_processors.media',
+    'django.template.context_processors.static',
     'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.request',
+    'django.template.context_processors.request',
     # Machina
     'machina.core.context_processors.metadata',
 )
@@ -132,7 +131,7 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'vanilla_project.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
-WSGI_APPLICATION = 'vanilla_project.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 INSTALLED_APPS = [
     # Django apps

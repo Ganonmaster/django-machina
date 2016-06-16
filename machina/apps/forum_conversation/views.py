@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
+from __future__ import unicode_literals
+
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -13,7 +13,6 @@ from django.views.generic import FormView
 from django.views.generic import ListView
 from django.views.generic.detail import SingleObjectMixin
 
-# Local application / specific library imports
 from machina.apps.forum_conversation.signals import topic_viewed
 from machina.apps.forum_conversation.utils import get_client_ip
 from machina.conf import settings as machina_settings
@@ -73,12 +72,14 @@ class TopicView(PermissionRequiredMixin, ListView):
         Returns the topic to consider.
         """
         if not hasattr(self, 'topic'):
-            self.topic = get_object_or_404(Topic, pk=self.kwargs['pk'])
+            self.topic = get_object_or_404(
+                Topic.objects.select_related('forum').all(), pk=self.kwargs['pk'])
         return self.topic
 
     def get_queryset(self):
         self.topic = self.get_topic()
-        qs = self.topic.posts.all().exclude(approved=False).select_related('poster') \
+        qs = self.topic.posts.all().exclude(approved=False) \
+            .select_related('poster', 'updated_by') \
             .prefetch_related('attachments', 'poster__forum_profile')
         return qs
 
@@ -124,7 +125,8 @@ class BasePostFormView(FormView):
 
     success_message = _('This message has been posted successfully.')
     approval_required_message = _('This message will be validated before appearing on the forum.')
-    attachment_formset_general_error_message = _('There are some errors in the attachments you submitted.')
+    attachment_formset_general_error_message = _(
+        'There are some errors in the attachments you submitted.')
 
     def get(self, request, *args, **kwargs):
         if request.user.is_banned_site:
@@ -285,8 +287,9 @@ class BasePostFormView(FormView):
                 # Computes the list of the attachment file names that should be attached
                 # to the forum post being created or updated
                 for form in context['attachment_formset'].forms:
-                    if form['DELETE'].value() or (not form['file'].html_name in self.request._files
-                                                  and not form.instance.pk):
+                    if form['DELETE'].value() \
+                        or (not form['file'].html_name in self.request._files and
+                            not form.instance.pk):
                         continue
                     attachments.append(
                         (
@@ -387,7 +390,8 @@ class BaseTopicFormView(BasePostFormView):
 
     poll_option_formset_class = TopicPollOptionFormset
 
-    poll_option_formset_general_error_message = _('There are some errors in the poll options you submitted.')
+    poll_option_formset_general_error_message = _(
+        'There are some errors in the poll options you submitted.')
 
     def get(self, request, *args, **kwargs):
         if request.user.is_banned_site:
@@ -437,11 +441,16 @@ class BaseTopicFormView(BasePostFormView):
         self.attachment_preview = self.preview if attachment_formset_valid else None
         self.poll_preview = self.preview if poll_option_formset_valid else None
 
+        poll_options_validated = poll_option_formset_valid is not None
         if post_form_valid and attachment_formset_valid is not False \
                 and poll_option_formset_valid is not False:
-            return self.form_valid(post_form, attachment_formset, poll_option_formset)
+            return self.form_valid(
+                post_form, attachment_formset, poll_option_formset,
+                poll_options_validated=poll_options_validated)
         else:
-            return self.form_invalid(post_form, attachment_formset, poll_option_formset)
+            return self.form_invalid(
+                post_form, attachment_formset, poll_option_formset,
+                poll_options_validated=poll_options_validated)
 
     def get_poll_option_formset_class(self):
         """
@@ -492,12 +501,12 @@ class BaseTopicFormView(BasePostFormView):
 
         return context
 
-    def form_valid(self, post_form, attachment_formset, poll_option_formset):
+    def form_valid(self, post_form, attachment_formset, poll_option_formset, **kwargs):
         save_poll_option_formset = poll_option_formset is not None \
             and not self.preview
 
         valid = super(BaseTopicFormView, self).form_valid(
-            post_form, attachment_formset, poll_option_formset=poll_option_formset)
+            post_form, attachment_formset, poll_option_formset=poll_option_formset, **kwargs)
 
         if save_poll_option_formset:
             poll_option_formset.topic = self.forum_post.topic
@@ -510,13 +519,14 @@ class BaseTopicFormView(BasePostFormView):
 
         return valid
 
-    def form_invalid(self, post_form, attachment_formset, poll_option_formset):
-        if poll_option_formset and not poll_option_formset.is_valid() \
-                and len(post_form.cleaned_data['poll_question']):
+    def form_invalid(self, post_form, attachment_formset, poll_option_formset, **kwargs):
+        poll_errors = [k for k in post_form.errors.keys() if k.startswith('poll_')]
+        if poll_errors or (poll_option_formset and not poll_option_formset.is_valid() and
+                           len(post_form.cleaned_data['poll_question'])):
             messages.error(self.request, self.poll_option_formset_general_error_message)
 
         return super(BaseTopicFormView, self).form_invalid(
-            post_form, attachment_formset, poll_option_formset=poll_option_formset)
+            post_form, attachment_formset, poll_option_formset=poll_option_formset, **kwargs)
 
 
 class PostFormView(SingleObjectMixin, BasePostFormView):

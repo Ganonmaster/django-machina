@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
 from __future__ import unicode_literals
 
-# Third party imports
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -18,7 +16,6 @@ from django.views.generic.detail import SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin
 from django.views.generic.edit import ProcessFormView
 
-# Local application / specific library imports
 from machina.conf import settings as machina_settings
 from machina.core.db.models import get_model
 from machina.core.loading import get_class
@@ -47,7 +44,7 @@ class TopicLockView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin, 
         """
         self.object = self.get_object()
         success_url = self.get_success_url()
-        self.object.status = Topic.STATUS_CHOICES.topic_locked
+        self.object.status = Topic.TOPIC_LOCKED
         self.object.save()
         return HttpResponseRedirect(success_url)
 
@@ -97,7 +94,7 @@ class TopicUnlockView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin
         """
         self.object = self.get_object()
         success_url = self.get_success_url()
-        self.object.status = Topic.STATUS_CHOICES.topic_unlocked
+        self.object.status = Topic.TOPIC_UNLOCKED
         self.object.save()
         return HttpResponseRedirect(success_url)
 
@@ -227,9 +224,9 @@ class TopicMoveView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin,
 
         # Eventually lock the topic
         if form.cleaned_data['lock_topic']:
-            topic.status = Topic.STATUS_CHOICES.topic_locked
+            topic.status = Topic.TOPIC_LOCKED
         else:
-            topic.status = Topic.STATUS_CHOICES.topic_moved
+            topic.status = Topic.TOPIC_MOVED
 
         topic.save()
         old_forum.save()
@@ -253,9 +250,11 @@ class TopicMoveView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin,
         return self.request.forum_permission_handler.can_move_topics(obj, user)
 
 
-class TopicUpdateTypeBaseView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin, BaseDetailView):
+class TopicUpdateTypeBaseView(
+        PermissionRequiredMixin, SingleObjectTemplateResponseMixin, BaseDetailView):
     """
-    A view providing the ability to change the type of forum topics: normal, sticky topic or announce.
+    A view providing the ability to change the type of forum topics: normal, sticky topic or
+    announce.
     """
     template_name = 'forum_moderation/topic_update_type.html'
     context_object_name = 'topic'
@@ -306,7 +305,7 @@ class TopicUpdateTypeBaseView(PermissionRequiredMixin, SingleObjectTemplateRespo
 
 
 class TopicUpdateToNormalTopicView(TopicUpdateTypeBaseView):
-    target_type = Topic.TYPE_CHOICES.topic_post
+    target_type = Topic.TOPIC_POST
     question = _('Would you want to change this topic to a default topic?')
 
     # Permissions checks
@@ -316,7 +315,7 @@ class TopicUpdateToNormalTopicView(TopicUpdateTypeBaseView):
 
 
 class TopicUpdateToStickyTopicView(TopicUpdateTypeBaseView):
-    target_type = Topic.TYPE_CHOICES.topic_sticky
+    target_type = Topic.TOPIC_STICKY
     question = _('Would you want to change this topic to a sticky topic?')
 
     # Permissions checks
@@ -326,7 +325,7 @@ class TopicUpdateToStickyTopicView(TopicUpdateTypeBaseView):
 
 
 class TopicUpdateToAnnounceView(TopicUpdateTypeBaseView):
-    target_type = Topic.TYPE_CHOICES.topic_announce
+    target_type = Topic.TOPIC_ANNOUNCE
     question = _('Would you want to change this topic to an announce?')
 
     # Permissions checks
@@ -376,7 +375,8 @@ class ModerationQueueDetailView(PermissionRequiredMixin, DetailView):
 
         if not post.is_topic_head:
             # Add the topic review
-            previous_posts = topic.posts.filter(approved=True, created__lte=post.created).order_by('-created')
+            previous_posts = topic.posts.filter(approved=True, created__lte=post.created) \
+                .order_by('-created')
             previous_posts = previous_posts[:machina_settings.TOPIC_REVIEW_POSTS_NUMBER]
             context['previous_posts'] = previous_posts
 
@@ -431,7 +431,8 @@ class PostApproveView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin
         return self.request.forum_permission_handler.can_approve_posts(obj, user)
 
 
-class PostDisapproveView(PermissionRequiredMixin, SingleObjectTemplateResponseMixin, BaseDetailView):
+class PostDisapproveView(
+        PermissionRequiredMixin, SingleObjectTemplateResponseMixin, BaseDetailView):
     """
     A view providing the ability to disapprove queued forum posts.
     """

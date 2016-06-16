@@ -1,21 +1,29 @@
 django-machina
 ##############
 
-.. image:: https://readthedocs.org/projects/django-machina/badge/?style=flat-square&version=latest
-   :target: http://django-machina.readthedocs.org/en/latest/
+.. image:: https://readthedocs.org/projects/django-machina/badge/?style=flat-square&version=stable
+   :target: http://django-machina.readthedocs.org/en/stable/
    :alt: Documentation Status
+
+.. image:: https://img.shields.io/pypi/l/django-machina.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/django-machina/
+    :alt: License
+
+.. image:: http://img.shields.io/pypi/v/django-machina.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/django-machina/
+    :alt: Latest Version
 
 .. image:: http://img.shields.io/travis/ellmetha/django-machina.svg?style=flat-square
     :target: http://travis-ci.org/ellmetha/django-machina
     :alt: Build status
 
-.. image:: http://img.shields.io/coveralls/ellmetha/django-machina.svg?style=flat-square
-    :target: https://coveralls.io/r/ellmetha/django-machina
-    :alt: Coveralls status
+.. image:: https://img.shields.io/codecov/c/github/ellmetha/django-machina.svg?style=flat-square
+    :target: https://codecov.io/github/ellmetha/django-machina
+    :alt: Codecov status
 
 |
 
-**This application is in heavy development. It is not yet suitable for production environments.**
+**This application is currently in beta. It should not be used in production environments.**
 
 *Django-machina* is a forum framework for Django providing a way to build community-driven websites. It offers a full-featured yet very extensible forum solution:
 
@@ -25,10 +33,11 @@ django-machina
 * Anonymous posting
 * Polls and attachments
 * Moderation and pre-moderation
+* Forum conversations search
 * ...
 
 .. image:: https://raw.githubusercontent.com/ellmetha/django-machina/master/docs/_images/machina_forum_header.png
-  :target: http://django-machina.readthedocs.org/en/latest/
+  :target: http://django-machina.readthedocs.org/
 
 |
 
@@ -38,7 +47,7 @@ django-machina
 
 .. _django-oscar: https://github.com/django-oscar/django-oscar
 
-.. contents::
+.. contents:: :local:
 
 Documentation
 =============
@@ -50,21 +59,22 @@ Head over to the documentation for all the details on how to set up your forum a
 Requirements
 ============
 
-Python 2.7+ or 3.3+, Django 1.7+. Please refer to the requirements_ section of the documentation for a full list of dependencies.
+Python 2.7+ or 3.3+, Django 1.8+. Please refer to the requirements_ section of the documentation for a full list of dependencies.
 
 .. _requirements: https://django-machina.readthedocs.org/en/latest/getting_started.html#requirements
 
-What still needs to be done
-===========================
+Demo sites
+==========
 
-* Documenting the customization features provided by django-machina and some common use cases. These features are similar to the ones provided by the django-oscar_ e-commerce framework
-* Documenting the ways to contribute to *django-machina*
-* Implementing the topic subscription feature : a user can get a list of all topics to which he subscribed
+Two demo sites can be tested:
+
+* the `vanilla project <http://vanilla.machina-forum.io/>`_ contains a standard installation of *django-machina* without customization
+* the `demo project <http://demo.machina-forum.io/>`_ showcases the customization possibilities of *django-machina*
 
 Authors
 =======
 
-Morgan Aubert (@ellmetha) and contributors_
+Morgan Aubert (`@ellmetha <https://github.com/ellmetha>`_) and contributors_
 
 .. _contributors: https://github.com/ellmetha/django-machina/contributors
 

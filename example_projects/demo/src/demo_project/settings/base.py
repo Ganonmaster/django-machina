@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from __future__ import unicode_literals
-import gettext
 
+from django.core.urlresolvers import reverse_lazy
 from unipath import Path
 
 from machina import get_apps as get_machina_apps
@@ -27,11 +27,11 @@ TIME_ZONE = 'Europe/Paris'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'fr'
+LANGUAGE_CODE = 'en'
 
 LANGUAGES = (
-   ('en', "English"),
-   ('fr', "Français"),
+    ('en', "English"),
+    ('fr', "Français"),
 )
 
 DATABASES = {
@@ -92,7 +92,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'onlyatest833090dhkgrfgdfg*fds5645456fg'
+SECRET_KEY = 'NOTSECRET'
 
 TEMPLATES = [
     {
@@ -104,12 +104,12 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.contrib.auth.context_processors.auth',
-                'django.core.context_processors.debug',
-                'django.core.context_processors.i18n',
-                'django.core.context_processors.media',
-                'django.core.context_processors.static',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.request',
+                'django.template.context_processors.request',
                 # Machina
                 'machina.core.context_processors.metadata',
             ],
@@ -136,7 +136,7 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'demo_project.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
-WSGI_APPLICATION = 'demo_project.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 INSTALLED_APPS = [
     # Django apps
@@ -160,13 +160,17 @@ INSTALLED_APPS = [
     'demo_project',
 ] + get_machina_apps([
     'demo_project.apps.forum_conversation',
+    'demo_project.apps.forum_member',
 ])
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 MIGRATION_MODULES = {
     'forum_conversation': 'machina.apps.forum_conversation.migrations',
+    'forum_member': 'machina.apps.forum_member.migrations',
 }
+
+LOGIN_URL = reverse_lazy('login')
 
 
 # Django compressor setings
@@ -180,6 +184,25 @@ COMPRESS_PRECOMPILERS = (
 COMPRESS_OUTPUT_DIR = 'machina'
 
 
+# Django ckeditor settings
+# --------------------------------------
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            {'name': 'clipboard', 'items': ['Undo', 'Redo', ]},
+            {'name': 'insert', 'items': ['Image', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak', ]},
+            {'name': 'styles', 'items': ['Styles', 'Format', ]},
+            {'name': 'basicstyles', 'items': ['Bold', 'Italic', 'Strike', '-', 'RemoveFormat', ]},
+            {'name': 'paragraph', 'items': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', ]},
+            {'name': 'links', 'items': ['Link', 'Unlink', 'Anchor', ]},
+            {'name': 'tools', 'items': ['Maximize', ]},
+        ],
+    }
+}
+
+
 # Haystack settings
 # --------------------------------------
 HAYSTACK_CONNECTIONS = {
@@ -190,7 +213,7 @@ HAYSTACK_CONNECTIONS = {
 }
 
 
-# Specific machina settings
+# Specific machina settings
 # --------------------------------------
 
 # Attachment cache backend

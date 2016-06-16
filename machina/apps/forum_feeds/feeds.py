@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Standard library imports
-# Third party imports
+from __future__ import unicode_literals
+
 from django.contrib.syndication.views import Feed
 from django.core.urlresolvers import reverse_lazy
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
 
-# Local application / specific library imports
 from machina.core.db.models import get_model
-from machina.core.loading import get_class
 
 Forum = get_model('forum', 'Forum')
 Topic = get_model('forum_conversation', 'Topic')
-
-PermissionHandler = get_class('forum_permission.handler', 'PermissionHandler')
-perm_handler = PermissionHandler()
 
 
 class LastTopicsFeed(Feed):
@@ -40,14 +35,19 @@ class LastTopicsFeed(Feed):
             forum = get_object_or_404(Forum, pk=forum_pk)
             forums_qs = forum.get_descendants(include_self=True) if descendants \
                 else Forum.objects.filter(pk=forum_pk)
-            self.forums = perm_handler.forum_list_filter(
+            self.forums = request.forum_permission_handler.forum_list_filter(
                 forums_qs, request.user)
         else:
-            self.forums = perm_handler.forum_list_filter(
+            self.forums = request.forum_permission_handler.forum_list_filter(
                 Forum.objects.all(), request.user)
 
     def items(self):
         return Topic.objects.filter(forum__in=self.forums, approved=True).order_by('-last_post_on')
+
+    def item_link(self, item):
+        return reverse_lazy('forum_conversation:topic', kwargs={
+            'forum_slug': item.forum.slug, 'forum_pk': item.forum.pk,
+            'slug': item.slug, 'pk': item.id})
 
     def item_pubdate(self, item):
         return item.created
